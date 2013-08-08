@@ -1,10 +1,11 @@
 <?php
-/**
- * Created by JetBrains PhpStorm.
- * User: Naser
- * Date: 07.08.13
- * Time: 10:07
- * To change this template use File | Settings | File Templates.
+/*
+ * This file is part of the MassiveArt CloudFace Library.
+ *
+ * (c) MASSIVE ART Webservices GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
  */
 
 namespace MassiveArt\CloudFace;
