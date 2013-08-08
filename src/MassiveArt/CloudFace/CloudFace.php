@@ -10,8 +10,14 @@
 
 namespace MassiveArt\CloudFace;
 
-class CloudFace implements CloudInterface{
+use MassiveArt\CloudFace\Provider\CloudProvider;
 
+class CloudFace implements CloudInterface
+{
+
+    /**
+     * @var CloudProvider
+     */
     private $cloudProvider;
 
     public function setCloudProvider($cloudProvider)

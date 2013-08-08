@@ -8,10 +8,10 @@
  * with this source code in the file LICENSE.
  */
 
-namespace MassiveArt\CloudFace;
+namespace MassiveArt\CloudFace\Provider;
 
 
-class GoogleDrive extends CloudProvider{
+class AmazonS3 extends CloudProvider{
 
     public function authorize()
     {
@@ -20,7 +20,7 @@ class GoogleDrive extends CloudProvider{
 
     public function upload()
     {
-        return "GoogleDrive";
+        return "AmazonS3";
     }
 
     public function download()

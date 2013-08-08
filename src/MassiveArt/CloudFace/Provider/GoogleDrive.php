@@ -8,18 +8,19 @@
  * with this source code in the file LICENSE.
  */
 
-namespace MassiveArt\CloudFace;
+namespace MassiveArt\CloudFace\Provider;
 
 
-class Dropbox extends CloudProvider{
+class GoogleDrive extends CloudProvider{
 
     public function authorize()
     {
 
     }
+
     public function upload()
     {
-        return "Dropbox";
+        return "GoogleDrive";
     }
 
     public function download()

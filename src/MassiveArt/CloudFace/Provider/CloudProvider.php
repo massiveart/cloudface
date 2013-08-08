@@ -8,8 +8,9 @@
  * with this source code in the file LICENSE.
  */
 
-namespace MassiveArt\CloudFace;
+namespace MassiveArt\CloudFace\Provider;
 
+use MassiveArt\CloudFace\CloudInterface;
 
 abstract class CloudProvider implements CloudInterface{
 

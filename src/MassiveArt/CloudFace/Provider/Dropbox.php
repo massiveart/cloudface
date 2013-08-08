@@ -8,10 +8,11 @@
  * with this source code in the file LICENSE.
  */
 
-namespace MassiveArt\CloudFace;
+namespace MassiveArt\CloudFace\Provider;
 
 
-class AmazonS3 extends CloudProvider{
+class Dropbox extends CloudProvider
+{
 
     public function authorize()
     {
@@ -20,7 +21,7 @@ class AmazonS3 extends CloudProvider{
 
     public function upload()
     {
-        return "AmazonS3";
+        return "Dropbox";
     }
 
     public function download()
