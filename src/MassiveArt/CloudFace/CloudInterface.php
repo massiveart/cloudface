@@ -12,7 +12,7 @@ namespace MassiveArt\CloudFace;
 
 
 interface CloudInterface {
-    public function authorize();
+    public function authorize($clientId, $clientSecret, $authorizationCode);
     public function upload();
     public function download();
 }

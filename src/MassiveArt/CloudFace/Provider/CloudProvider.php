@@ -14,7 +14,7 @@ use MassiveArt\CloudFace\CloudInterface;
 
 abstract class CloudProvider implements CloudInterface{
 
-    public abstract function authorize();
+    public abstract function authorize($clientId, $clientSecret, $authorizationCode);
     public abstract function upload();
     public abstract function download();
 }
