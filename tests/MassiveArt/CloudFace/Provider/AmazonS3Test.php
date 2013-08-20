@@ -13,7 +13,6 @@ namespace MassiveArt\CloudFace\Provider;
 
 class AmazonS3Test extends \PHPUnit_Framework_TestCase
 {
-
     /**
      * @var AmazonS3
      */
@@ -26,12 +25,11 @@ class AmazonS3Test extends \PHPUnit_Framework_TestCase
 
     public function testAuthorize()
     {
-        $clientId = 'AKIAJDD3MWRDKOLBBSAA';
-        $clientSecret = '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';
-        $authorizationCode = null;
+        $awsAccessKeyId = 'AKIAJDD3MWRDKOLBBSAA';
+        $awsSecretKey = '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';
 
-        $this->assertEquals("haha",$this->amazonS3->authorize($clientId, $clientSecret, $authorizationCode));
+        $params = array('awsAccessKeyId' => $awsAccessKeyId, 'awsSecretKey' => $awsSecretKey);
+
+        $this->assertEquals("haha",$this->amazonS3->authorize($params));
     }
-
-
 }

@@ -26,8 +26,10 @@ class DropboxTest extends PHPUnit_Framework_TestCase
     {
         $clientId = '35l5jgbz3nr8wc7';
         $clientSecret = 'n6wy4pnpgop9o55';
-        $authorizationCode = '-5XcyUC85PoAAAAAAAAAAUzbJ6nilwEBMOM2WAkU5Ao';
+        $authorizationCode = 'uxEX5JMJUa8AAAAAAAAAAenpjWA7iDPdMACtUxW81wo';
 
-        $this->assertEquals("haha",$this->dropbox->authorize($clientId, $clientSecret, $authorizationCode));
+        $params = array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'authorizationCode' => $authorizationCode);
+
+        $this->assertEquals("haha", $this->dropbox->authorize($params));
     }
 }

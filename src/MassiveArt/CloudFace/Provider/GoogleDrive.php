@@ -17,62 +17,62 @@ use Buzz\Message\Response;
 
 class GoogleDrive extends CloudProvider
 {
+    // contains access token which is will be used to authorize the API requests.
+    protected $accessToken;
+
     /**
-     * @param $clientId
-     * @param $clientSecret
-     * @param $authorizationCode
-     * @return Response
+     * @param array $params ('clientId' => $clientId, 'clientSecret' => $clientSecret, 'authorizationCode' => $authorizationCode).
+     * @return string An access token which will be used to authorize the API requests.
      */
-    public function authorize($clientId, $clientSecret, $authorizationCode)
+    public function authorize($params = array())
     {
+        try {
+            if (isset($params['clientId'], $params['clientSecret'], $params['authorizationCode'])) {
+                // The application calls this endpoint to acquire a bearer token once the user has authorized the app
+                $urlBase = 'https://accounts.google.com/o/oauth2/token';
 
-        /*
-         * The app calls this endpoint to acquire a bearer token once the user has authorized the app.
-         * URL_STRUCTURE : https://accounts.google.com/o/oauth2/token
-         * METHOD : POST
-         * PARAMETERS :
-         *  - code (required): The code acquired by directing the user to /oauth2/authorize.
-         *  - grant_type (required): The grant type, which must be authorization_code.
-         *  - client_id: The apps key, found in the App Console.
-         *  - client_secret: The apps secret, found in the App Console.
-         *  - redirect_uri: Only used to validate that it matches the original /oauth2/authorize, not used to redirect again.
-         * RETURNS : A JSON-encoded dictionary including an access token (access_token), token type (token_type), and Dropbox user ID (uid). The token type will always be "bearer".
-         */
+                // code (required): The code acquired by directing the user to /oauth2/authorize.
+                $authorizationCode = $params['authorizationCode'];
 
+                // grant_type (required): The grant type, which must be authorization_code.
+                $grantType = 'authorization_code';
 
-        // The application calls this endpoint to acquire a bearer token once the user has authorized the app
-        $urlStructure = 'https://accounts.google.com/o/oauth2/token';
+                // The URI registered with the application.
+                $redirectUri = 'http://localhost/PHP-Space/';
 
-        // code (required): The code acquired by directing the user to /oauth2/authorize.
-        $authorizationCode = '4/wGepbthLJ4YVKE2el2Fw_tYjctU3.ovOZtK5c5iMaOl05ti8ZT3bTcyf3gAI';
+                // client_id: The client_id obtained during application registration.
+                $clientId = $params['clientId'];
 
-        // grant_type (required): The grant type, which must be authorization_code.
-        $grantType = 'authorization_code';
-
-        // redirect_uri: Only used to validate that it matches the original /oauth2/authorize, not used to redirect again.
-        $redirectUri = 'http://localhost/PHP-Space/';
-
-        // client_id: The apps key, found in the App Console.
-        $clientId = '565391687116.apps.googleusercontent.com';
-
-        // client_secret: The apps secret, found in the App Console.
-        $clientSecret = 'skWCWQsbcruC5jgYzNr5CfzR';
+                // client_secret: The client secret obtained during application registration.
+                $clientSecret = $params['clientSecret'];
 
 
-        $request = new Request();
-        $response = new Response();
+                $request = new Request();
+                $response = new Response();
 
-        $request->fromUrl($urlStructure);
-        $request->setMethod('POST');
+                $request->fromUrl($urlBase);
+                $request->setMethod('POST');
+                $request->setContent('code=' . $authorizationCode . '&grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret . '&redirect_uri=' . $redirectUri);
+                $request->addHeader('Content-Type: application/x-www-form-urlencoded');
 
-        $request->setContent('code=' . $authorizationCode . '&grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret . '&redirect_uri=' . $redirectUri);
-        $request->addHeader('Content-Type: application/x-www-form-urlencoded');
+                $client = new FileGetContents();
+                $client->send($request, $response);
 
-        $client = new FileGetContents();
-        $client->send($request, $response);
+                if (!$response->isOk()) {
+                    throw new \Exception($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+                } else {
+                    $content = json_decode($response->getContent(), true);
 
-        return $response;
-
+                    // access_token expires in one hour. You should generate a new access_token by calling refresh_token.
+                    // refresh_token never expires and you should store it long term.
+                   return $this->accessToken = $content["access_token"];
+                }
+            } else {
+                throw new \Exception('Error: one or more of the required parameters is missing.');
+            }
+        } catch (\Exception $ex) {
+            return $ex->getMessage();
+        }
     }
 
     public function upload()

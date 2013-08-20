@@ -30,7 +30,7 @@ class CloudFace implements CloudInterface
         return $this->cloudProvider;
     }
 
-    public function authorize($clientId, $clientSecret, $authorizationCode)
+    public function authorize($params = array())
     {
 
     }
