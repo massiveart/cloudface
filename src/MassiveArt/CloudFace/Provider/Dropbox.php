@@ -11,77 +11,93 @@
 namespace MassiveArt\CloudFace\Provider;
 
 use Buzz\Client\FileGetContents;
+use MassiveArt\CloudFace\Exception\InvalidRequestException;
+use MassiveArt\CloudFace\Exception\MissingParameterException;
 use MassiveArt\CloudFace\Provider\CloudProvider;
 use Buzz\Message\Request;
 use Buzz\Message\Response;
 
+/**
+ * This is the class with which you can talk to the Dropbox REST API.
+ * This class is a subclass of Provider class.
+ *
+ * @package MassiveArt\CloudFace\Provider
+ */
 class Dropbox extends CloudProvider
 {
-    // contains access token which is will be used to authorize the API requests.
+    /**
+     * Contains the access token which will be used to authorize the API requests.
+     * @var string
+     */
     protected $accessToken;
 
     /**
-     * @param array $params ('clientId' => $clientId, 'clientSecret' => $clientSecret, 'authorizationCode' => $authorizationCode)
-     * @return string An access token which will be used to authorize the requests.
+     * Sets the access token for making API requests.
+     *
+     * An array with the required information has to be passed:
+     * <code>
+     * array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'authorizationCode' => $authorizationCode);
+     * </code>
+     * If the required information is not set, it throws an MissingParameterException.
+     * If the required information is not valid, it throws an InvalidRequestException.
+     *
+     * @param array $params
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     * @throws \MassiveArt\CloudFace\Exception\MissingParameterException
      */
     public function authorize($params = array())
     {
-        try {
-            if (isset($params['clientId'], $params['clientSecret'], $params['authorizationCode'])) {
-                // client_id: The apps key, found in the App Console.
-                $clientId = $params['clientId'];
+        if (isset($params['clientId'], $params['clientSecret'], $params['authorizationCode'])) {
+            // http method
+            $httpMethod = 'POST';
 
-                // client_secret: The apps secret, found in the App Console.
-                $clientSecret = $params['clientSecret'];
+            // The app calls this endpoint to acquire a bearer token once the user has authorized the app.
+            $urlBase = 'https://api.dropbox.com/1/oauth2/token';
 
-                // code (required): The code acquired by directing the user to /oauth2/authorize.
-                $authorizationCode = $params['authorizationCode'];
+            // client_id: The apps key, found in the App Console.
+            $clientId = $params['clientId'];
 
-                // The app calls this endpoint to acquire a bearer token once the user has authorized the app
-                $urlBase = 'https://api.dropbox.com/1/oauth2/token';
+            // client_secret: The apps secret, found in the App Console.
+            $clientSecret = $params['clientSecret'];
 
-                // grant_type (required): The grant type, which must be authorization_code.
-                $grantType = 'authorization_code';
+            // code: The code acquired by directing the user to /oauth2/authorize.
+            $authorizationCode = $params['authorizationCode'];
 
-                // redirect_uri: Only used to validate that it matches the original /oauth2/authorize, not used to redirect again.
-                // $redirectUri = 'http://localhost/PHP-Space';
+            // grant_type: The grant type, which must be authorization_code.
+            $grantType = 'authorization_code';
 
-                $request = new Request();
-                $response = new Response();
+            // redirect_uri: Only used to validate that it matches the original /oauth2/authorize, not used to redirect again.
+            // $redirectUri = 'http://localhost/PHP-Space';
 
-                $request->fromUrl($urlBase);
-                $request->setMethod('POST');
-                $request->setContent('code=' . $authorizationCode . '&grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret);
-                $request->addHeader('Content-Type : application/json');
+            $request = new Request();
+            $response = new Response();
 
-                $client = new FileGetContents();
-                $client->send($request, $response);
+            $request->fromUrl($urlBase);
+            $request->setMethod($httpMethod);
+            $request->setContent('code=' . $authorizationCode . '&grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret);
+            $request->addHeader('Content-Type : application/json');
 
-                if (!$response->isOk()) {
-                    throw new \Exception($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
-                } else {
-                    $content = json_decode($response->getContent(), true);
-                    return $this->accessToken = $content["access_token"];
-                }
+            $client = new FileGetContents();
+            $client->send($request, $response);
+
+            if (!$response->isOk()) {
+                throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
             } else {
-                throw new \Exception('Error: one or more of the required parameters is missing.');
+                $content = json_decode($response->getContent(), true);
+                $this->accessToken = $content["access_token"];
+                return true;
             }
-        } catch (\Exception $ex) {
-            return $ex->getMessage();
+        } else {
+            throw new MissingParameterException('Error: one or more of the required parameters is missing.');
         }
     }
 
-    /**
-     *
-     */
     public function upload()
     {
 
     }
 
-    /**
-     *
-     */
     public function download()
     {
 

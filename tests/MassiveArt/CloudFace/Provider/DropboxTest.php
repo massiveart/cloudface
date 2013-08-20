@@ -7,29 +7,41 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+namespace MassiveArt\CloudFace\Provider;
 
 use MassiveArt\CloudFace\Provider\Dropbox;
 
-class DropboxTest extends PHPUnit_Framework_TestCase
+/**
+ * Test class for Dropbox.
+ * @package MassiveArt\CloudFace\Provider
+ */
+class DropboxTest extends \PHPUnit_Framework_TestCase
 {
     /**
+     * Contains an instance of Dropbox class.
      * @var Dropbox
      */
     private $dropbox;
 
+    /**
+     * Initialize a dropbox object.
+     */
     public function setUp()
     {
         $this->dropbox = new Dropbox();
     }
 
+    /**
+     * Tests the function authorize.
+     */
     public function testAuthorize()
     {
         $clientId = '35l5jgbz3nr8wc7';
         $clientSecret = 'n6wy4pnpgop9o55';
-        $authorizationCode = 'uxEX5JMJUa8AAAAAAAAAAenpjWA7iDPdMACtUxW81wo';
+        $authorizationCode = 'D0K1hEbe4NQAAAAAAAAAAZNAxkhisUZHLT2nEqnlFO0';
 
         $params = array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'authorizationCode' => $authorizationCode);
 
-        $this->assertEquals("haha", $this->dropbox->authorize($params));
+       $this->assertEquals(true, $this->dropbox->authorize($params));
     }
 }

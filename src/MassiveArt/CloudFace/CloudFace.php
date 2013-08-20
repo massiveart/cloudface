@@ -12,32 +12,49 @@ namespace MassiveArt\CloudFace;
 
 use MassiveArt\CloudFace\Provider\CloudProvider;
 
+/**
+ * This class implements the CloudInterface. It delegates the function calls to the appropriate provider.
+ *
+ * @package MassiveArt\CloudFace
+ */
 class CloudFace implements CloudInterface
 {
-
     /**
+     * Contains the provider which is using currently.
      * @var CloudProvider
      */
     private $cloudProvider;
 
-    public function setCloudProvider($cloudProvider)
+    /**
+     * Sets the current cloud provider to the given one.
+     * @param $provider
+     */
+    public function setCloudProvider($provider)
     {
-        $this->cloudProvider = $cloudProvider;
+        $this->cloudProvider = $provider;
     }
 
+    /**
+     * Gets the current cloud provider.
+     * @return CloudProvider
+     */
     public function getCloudProvider()
     {
         return $this->cloudProvider;
     }
 
+    /**
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     * @param array $params
+     */
     public function authorize($params = array())
     {
-
+        $this->cloudProvider->authorize($params);
     }
 
     public function upload()
     {
-        $this->cloudProvider->upload();
+
     }
 
     public function download()
