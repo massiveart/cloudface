@@ -44,4 +44,14 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
 
        $this->assertEquals(true, $this->dropbox->authorize($params));
     }
+
+    public function testUpload()
+    {
+        $file = '/Users/Naser/Desktop';
+        $path = '/CrazyFolder/test.txt';
+
+        $params = array('file' => $file, 'path' => $path);
+
+        $this->assertEquals("haha", $this->dropbox->upload($params));
+    }
 }
