@@ -2,7 +2,7 @@
 /*
  * This file is part of the MassiveArt CloudFace Library.
  *
- * (c) MASSIVE ART Webservices GmbH
+ * (c) MASSIVE ART WebServices GmbH
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -14,7 +14,7 @@ use Buzz\Message\Request;
 use MassiveArt\CloudFace\Exception\MissingParameterException;
 
 /**
- * This is the class with which you can talk to the AmazonS3 REST API.
+ * This is the class you can use to communicate with the AmazonS3 REST API.
  * This class is a subclass of Provider class.
  *
  * @package MassiveArt\CloudFace\Provider
