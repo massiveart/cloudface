@@ -31,14 +31,14 @@ class GoogleDriveTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests the function authorize.
      */
-    public function testAuthorize()
-    {
-        $clientId = '565391687116.apps.googleusercontent.com';
-        $clientSecret = 'skWCWQsbcruC5jgYzNr5CfzR';
-        $authorizationCode = '4/mezbIHjpfBq1KlpMg_enuQazzR0e.YlbT__xyxcAcOl05ti8ZT3b5Ma8wgQI.';
+        public function testAuthorize()
+        {
+            $clientId = '565391687116.apps.googleusercontent.com';
+            $clientSecret = 'skWCWQsbcruC5jgYzNr5CfzR';
+            $refreshToken = '1/iFfu_MEHKxkwWVkmyK8IiXK1w0_pRTqE2WLerR8gJO4';
 
-        $params = array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'authorizationCode' => $authorizationCode);
+            $params = array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'refreshToken' => $refreshToken);
 
-        $this->assertEquals(true, $this->googleDrive->authorize($params));
-    }
+            $this->assertEquals(true, $this->googleDrive->authorize($params));
+        }
 }
