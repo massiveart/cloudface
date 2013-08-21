@@ -8,22 +8,9 @@
  * with this source code in the file LICENSE.
  */
 
-namespace MassiveArt\CloudFace;
+namespace MassiveArt\CloudFace\Exception;
 
 
-class Dropbox extends CloudProvider{
+class MissingParameterException extends  \Exception{
 
-    public function authorize()
-    {
-
-    }
-    public function upload()
-    {
-        return "Dropbox";
-    }
-
-    public function download()
-    {
-
-    }
 }

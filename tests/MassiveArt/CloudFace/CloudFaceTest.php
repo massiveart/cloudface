@@ -10,8 +10,13 @@
 
 namespace MassiveArt\CloudFace;
 
+use MassiveArt\CloudFace\Provider\AmazonS3;
+
 class CloudFaceTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @var CloudFace
+     */
     private $cloudFace;
 
     public function setUp()
