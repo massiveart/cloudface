@@ -8,12 +8,9 @@
  * with this source code in the file LICENSE.
  */
 
-namespace MassiveArt\CloudFace;
+namespace MassiveArt\CloudFace\Exception;
 
 
-abstract class CloudProvider implements CloudInterface{
+class InvalidRequestException extends  \Exception{
 
-    public abstract function authorize();
-    public abstract function upload();
-    public abstract function download();
 }
