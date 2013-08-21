@@ -36,7 +36,7 @@ class GoogleDrive extends CloudProvider
      *
      * An array with the required information has to be passed:
      * <code>
-     * array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'authorizationCode' => $authorizationCode);
+     * array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'refreshToken' => $refreshToken);
      * </code>
      * If the required information is not set, it throws an MissingParameterException.
      * If the required information is not valid, it throws an InvalidRequestException.
@@ -54,21 +54,18 @@ class GoogleDrive extends CloudProvider
      */
     public function authorize($params = array())
     {
-        if (isset($params['clientId'], $params['clientSecret'], $params['authorizationCode'])) {
+        if (isset($params['clientId'], $params['clientSecret'], $params['refreshToken'])) {
             // http method
             $httpMethod = 'POST';
 
-            // The application calls this endpoint to acquire a bearer token once the user has authorized the app.
+            // The application calls this endpoint to acquire a bearer access token on-demand.
             $urlBase = 'https://accounts.google.com/o/oauth2/token';
 
-            // code: The code acquired by directing the user to /oauth2/authorize.
-            $authorizationCode = $params['authorizationCode'];
+            // refresh_token: The refresh token acquired by directing the user to the consent page where the value of the access_type is offline.
+            $refreshToken = $params['refreshToken'];
 
-            // grant_type: The grant type, which must be authorization_code.
-            $grantType = 'authorization_code';
-
-            // The uri registered with the application.
-            $redirectUri = 'http://localhost/PHP-Space/';
+            // grant_type: The grant type, which must be refresh_token.
+            $grantType = 'refresh_token';
 
             // client_id: The client_id obtained during application registration.
             $clientId = $params['clientId'];
@@ -82,7 +79,7 @@ class GoogleDrive extends CloudProvider
 
             $request->fromUrl($urlBase);
             $request->setMethod($httpMethod);
-            $request->setContent('code=' . $authorizationCode . '&grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret . '&redirect_uri=' . $redirectUri);
+            $request->setContent('grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret . '&refresh_token=' . $refreshToken);
             $request->addHeader('Content-Type: application/x-www-form-urlencoded');
 
             $client = new FileGetContents();

@@ -34,61 +34,21 @@ class Dropbox extends CloudProvider
 
     /**
      * Sets the access token for making API requests.
-     *
      * An array with the required information has to be passed:
      * <code>
-     * array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'authorizationCode' => $authorizationCode);
+     * array('refreshToken' => $refreshToken);
      * </code>
-     * If the required information is not set, it throws an MissingParameterException.
-     * If the required information is not valid, it throws an InvalidRequestException.
+     * If the required information is not set, a MissingParameterException will be thrown.
      *
      * @param array $params
      * @return bool
-     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
      * @throws \MassiveArt\CloudFace\Exception\MissingParameterException
      */
     public function authorize($params = array())
     {
-        if (isset($params['clientId'], $params['clientSecret'], $params['authorizationCode'])) {
-            // http method
-            $httpMethod = 'POST';
-
-            // The app calls this endpoint to acquire a bearer token once the user has authorized the app.
-            $urlBase = 'https://api.dropbox.com/1/oauth2/token';
-
-            // client_id: The apps key, found in the App Console.
-            $clientId = $params['clientId'];
-
-            // client_secret: The apps secret, found in the App Console.
-            $clientSecret = $params['clientSecret'];
-
-            // code: The code acquired by directing the user to /oauth2/authorize.
-            $authorizationCode = $params['authorizationCode'];
-
-            // grant_type: The grant type, which must be authorization_code.
-            $grantType = 'authorization_code';
-
-            // redirect_uri: Only used to validate that it matches the original /oauth2/authorize, not used to redirect again.
-            // $redirectUri = 'http://localhost/PHP-Space';
-
-            $request = new Request();
-            $response = new Response();
-
-            $request->fromUrl($urlBase);
-            $request->setMethod($httpMethod);
-            $request->setContent('code=' . $authorizationCode . '&grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret);
-            $request->addHeader('Content-Type : application/json');
-
-            $client = new FileGetContents();
-            $client->send($request, $response);
-
-            if (!$response->isOk()) {
-                throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
-            } else {
-                $content = json_decode($response->getContent(), true);
-                $this->accessToken = $content["access_token"];
-                return true;
-            }
+        if (isset($params['accessToken'])) {
+            $this->accessToken = $params['accessToken'];
+            return true;
         } else {
             throw new MissingParameterException('Error: one or more of the required parameters is missing.');
         }
