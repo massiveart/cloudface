@@ -38,7 +38,7 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
      */
     public function testAuthorize()
     {
-        $accessToken = '3MxMAbx5aoYAAAAAAAAAAVqN4vGd7XasOmTOEDfj4uwfWPB-Jo3Rp19XsRR5UprT';
+        $accessToken = 'Your-AccessToken';
         $params = array('accessToken' => $accessToken);
 
        $this->assertEquals(true, $this->dropbox->authorize($params));
@@ -49,8 +49,8 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
      */
     public function testUpload()
     {
-        $path = 'CrazyFolder/';
-        $file = '/Users/Naser/Desktop/haha.pdf';
+        $path = '';
+        $file = 'path to the file on disk';
         $params = array('overwrite' => 'false');
 
         $this->testAuthorize();

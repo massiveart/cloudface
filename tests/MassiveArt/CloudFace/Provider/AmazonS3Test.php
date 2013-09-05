@@ -39,8 +39,8 @@ class AmazonS3Test extends \PHPUnit_Framework_TestCase
      */
     public function testAuthorize()
     {
-        $awsAccessKeyId = 'AKIAJDD3MWRDKOLBBSAA';
-        $awsSecretKey = 'UpCJCs2+ouVHu0rtknldbTTru5HnWfA9SmX4wZyZ';
+        $awsAccessKeyId = 'Your-AWS-AccessKeyId';
+        $awsSecretKey = 'Your-AWS-SecretKeyId';
         $params = array('awsAccessKeyId' => $awsAccessKeyId, 'awsSecretKey' => $awsSecretKey);
 
         $this->assertEquals(true,$this->amazonS3->authorize($params));
@@ -52,8 +52,8 @@ class AmazonS3Test extends \PHPUnit_Framework_TestCase
     public function testUpload()
     {
         $region = 's3-eu-west-1';
-        $file = '/Users/Naser/Desktop/haha.pdf';
-        $path = 'my-super-bucket'; // bucket name
+        $file = 'path to the file on disk';
+        $path = 'Your-Bucket-Name';
         $params = array('region' => $region);
 
         $this->testAuthorize();
