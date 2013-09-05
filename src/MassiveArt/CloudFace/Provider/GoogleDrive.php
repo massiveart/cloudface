@@ -2,7 +2,7 @@
 /*
  * This file is part of the MassiveArt CloudFace Library.
  *
- * (c) MASSIVE ART Webservices GmbH
+ * (c) MASSIVE ART WebServices GmbH
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -11,8 +11,10 @@
 namespace MassiveArt\CloudFace\Provider;
 
 use Buzz\Client\FileGetContents;
+use MassiveArt\CloudFace\Exception\FileNotFoundException;
 use MassiveArt\CloudFace\Exception\InvalidRequestException;
 use MassiveArt\CloudFace\Exception\MissingParameterException;
+use MassiveArt\CloudFace\Exception\UploadFailedException;
 use MassiveArt\CloudFace\Provider\CloudProvider;
 use Buzz\Message\Request;
 use Buzz\Message\Response;
@@ -32,7 +34,17 @@ class GoogleDrive extends CloudProvider
     protected $accessToken;
 
     /**
-     * Sets the access token for making API requests.
+     * Concatenates and returns the access token needed to make API requests.
+     *
+     * @return string
+     */
+    private function getAccessToken()
+    {
+        return 'Bearer ' . $this->accessToken;
+    }
+
+    /**
+     * Provides information(e.g. access token) that is essentially to make valid requests and access the services.
      *
      * An array with the required information has to be passed:
      * <code>
@@ -54,7 +66,13 @@ class GoogleDrive extends CloudProvider
      */
     public function authorize($params = array())
     {
-        if (isset($params['clientId'], $params['clientSecret'], $params['refreshToken'])) {
+        if (!isset($params['clientId'])) {
+            throw new MissingParameterException('Google\'s client id is missing.');
+        } elseif (!isset($params['clientSecret'])) {
+            throw new MissingParameterException('Google\'s client secret is missing.');
+        } elseif (!isset($params['refreshToken'])) {
+            throw new MissingParameterException('Google\'s refresh token is missing.');
+        } else {
             // http method
             $httpMethod = 'POST';
 
@@ -73,33 +91,312 @@ class GoogleDrive extends CloudProvider
             // client_secret: The client secret obtained during application registration.
             $clientSecret = $params['clientSecret'];
 
+            // type of file
+            $mimeType = 'application/x-www-form-urlencoded';
 
-            $request = new Request();
-            $response = new Response();
+            $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Type: ' . $mimeType);
+            $requestContent = 'grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret . '&refresh_token=' . $refreshToken;
+            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders, 'content' => $requestContent);
 
-            $request->fromUrl($urlBase);
-            $request->setMethod($httpMethod);
-            $request->setContent('grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret . '&refresh_token=' . $refreshToken);
-            $request->addHeader('Content-Type: application/x-www-form-urlencoded');
-
-            $client = new FileGetContents();
-            $client->send($request, $response);
+            $response = $this->sendRequest($params);
 
             if (!$response->isOk()) {
                 throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
             } else {
                 $content = json_decode($response->getContent(), true);
                 $this->accessToken = $content["access_token"];
+
                 return true;
             }
-        } else {
-            throw new MissingParameterException('Error: one or more of the required parameters is missing.');
         }
     }
 
-    public function upload()
+    /**
+     * Uploads a file to the given path. Optional parameters can be passed in an array.
+     * Uses curl to make the request for getting the resumable upload id. The Buzz library does not work for this request.
+     *
+     * @param $file
+     * @param $path
+     * @param array $params
+     * @return bool|mixed
+     * @throws \MassiveArt\CloudFace\Exception\UploadFailedException
+     * @throws \MassiveArt\CloudFace\Exception\MissingParameterException
+     */
+    public function upload($file, $path, $params = array())
     {
+        if (!isset($file)) {
+            throw new MissingParameterException('The path to the file on disk is missing.');
+        }
 
+        if (!isset($path)) {
+            $path = '';
+        }
+
+        // the endpoint for initiating a resumable upload
+        $urlBase = 'https://www.googleapis.com/upload/drive/v2/files?uploadType=resumable';
+
+        // The path on Google Drive where the file will be uploaded. If '' given, the file will be uploaded onto the root directory.
+        $path = $this->getParentFolder($path);
+        // Contains the unique id of folder in which the file will be uploaded. The kind parameter is always "drive#parentReference"
+        $path = array("id" => $path, "kind" => "drive#parentReference");
+        $path = json_encode($path);
+        $path = '[' . $path . ']';
+
+        // Gets file information
+        $fileInfo = new \finfo(FILEINFO_MIME);
+        $mimeType = $fileInfo->file($file);
+        $fileSize = filesize($file);
+        $fileName = basename($file);
+
+        // Metadata which is optionally and if any presences it will be sent in the body of the request that gets the upload id.
+        $metaData = array("title" => "$fileName", "parents" => json_decode($path));
+        $metaData = json_encode($metaData);
+
+        ini_set('memory_limit', -1);
+
+        // Initiate curl handle to get the resumable upload id
+        $ch = curl_init();
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Length: ' . strlen($metaData), 'X-Upload-Content-Type: ' . $mimeType, 'Content-Type: application/json');
+
+        curl_setopt($ch, CURLOPT_URL, $urlBase);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $requestHeaders);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $metaData);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $curlResponse = curl_exec($ch);
+        curl_close($ch);
+        $response = $this->parseCurlResponseHeader($curlResponse);
+
+        // The value of the Location header is used as the HTTP endpoint for doing the actual file upload.
+        $sessionUri = $response['Location'];
+
+        // Upload the file by sending a PUT request to the session URI obtained in the previous step.
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Length: ' . $fileSize, 'Content-Type: ' . $mimeType);
+        $requestContent = file_get_contents($file);
+
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $sessionUri);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $requestHeaders);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $requestContent);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $curlResponse = curl_exec($ch);
+        curl_close($ch);
+        $response = $this->parseCurlResponseHeader($curlResponse);
+        $httpCode = $this->parseHttpCodeLine($response['Http-Code-Line']);
+
+        if ($httpCode != 200 and $httpCode != 201) {
+            throw new UploadFailedException('Your upload request is terminated before receiving a valid response. Retry the upload process or try "resumeInterruptedUpload" function.');
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * Returns the unique id of the folder in which the file will be uploaded.
+     *
+     * @param $path
+     * @return mixed
+     * @throws \MassiveArt\CloudFace\Exception\FileNotFoundException
+     */
+    protected function getParentFolder($path)
+    {
+        $explodedPath = explode('/', ltrim($path, '/'));
+        $info = json_decode($this->getGoogleDriveAccountInfo()->getContent());
+        $parentsId = $info->{'rootFolderId'};
+
+        if ($path == '') {
+            return $parentsId;
+        }
+
+        foreach ($explodedPath as $folder) {
+            $query = urlencode("title = '$folder' and '$parentsId' in parents and mimeType = 'application/vnd.google-apps.folder'");
+            $response = $this->getFiles('?q=' . $query);
+            $response = json_decode($response->getContent(), true);
+            if (count($response['items']) === 0) {
+                throw new FileNotFoundException('The path you want to upload to is not exists.');
+            }
+            $parentsId = $response['items'][0]['id'];
+        }
+
+        return $parentsId;
+    }
+
+    /**
+     * Parses the given HttpCodeLine and Returns the http code.
+     *
+     * @param $httpCodeLine
+     * @return mixed
+     */
+    protected function parseHttpCodeLine($httpCodeLine)
+    {
+        $explodedHttpCodeLine = explode(' ', $httpCodeLine);
+        return $explodedHttpCodeLine[1];
+    }
+
+    /**
+     * Returns the basic information (user information and settings) about the Google Drive Account.
+     *
+     * @return Response
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getGoogleDriveAccountInfo()
+    {
+        $httpMethod = 'GET';
+        $urlBase = 'https://www.googleapis.com/drive/v2/about';
+
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+        } else {
+            return $response;
+        }
+    }
+
+    /**
+     * Lists the user's files. Accepts a query string for searching files.
+     *
+     * @param $query
+     * @return Response
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getFiles($query)
+    {
+        $httpMethod = 'GET';
+        $urlBase = 'https://www.googleapis.com/drive/v2/files' . $query;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+        } else {
+            return $response;
+        }
+    }
+
+    /**
+     * Resumes an upload process after a communication failure has interrupted the flow of data.
+     * Finds out how much data is already successfully sent and then resumes the upload starting from that point.
+     *
+     * @param array $params
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\UploadFailedException
+     */
+    public function resumeInterruptedUpload($params = array())
+    {
+        // Request the upload status
+        $ch = curl_init();
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Length: 0', 'Content-Range: bytes */' . $params['fileSize']);
+
+        curl_setopt($ch, CURLOPT_URL, $params['sessionUri']);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $requestHeaders);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $curlResponse = curl_exec($ch);
+        curl_close($ch);
+
+        // Extract the number of bytes uploaded so far from the response.
+        $response = $this->parseCurlResponseHeader($curlResponse);
+        $responseRangeLine = explode('-', $responseRangeLine = $response['Range']);
+        // $underRange = $responseRangeLine[0];
+        $upperRange = $responseRangeLine[1];
+
+        // Resume the upload from the point where it left off
+        $ch = curl_init();
+        $requestContent = file_get_contents($params['path'], null, null, $upperRange + 1);
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Length: ' . strlen($requestContent), 'Content-Range: bytes ' . ($upperRange + 1) . '-' . ($params['fileSize'] - 1) . '/' . $params['fileSize']);
+
+        curl_setopt($ch, CURLOPT_URL, $params['sessionUri']);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $requestHeaders);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $requestContent);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $curlResponse = curl_exec($ch);
+        $response = $this->parseCurlResponseHeader($curlResponse);
+        $httpCode = $this->parseHttpCodeLine($response['Http-Code-Line']);
+
+        if ($httpCode != 200 and $httpCode != 201) {
+            throw new UploadFailedException('Your upload request is terminated before receiving a valid response. Retry the upload process or try "resumeInterruptedUpload" function.');
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * Parses and returns an array of curl response headers.
+     *
+     * @param $response
+     * @return array
+     */
+    protected function parseCurlResponseHeader($response)
+    {
+        $parsedHeaders = array();
+
+        if (!$jsonPos = strpos($response, "{")) {
+            $header = array($response);
+            $part = 0;
+        } else {
+            $header = substr($response, 0, $jsonPos);
+            $header = explode("\r\n\r\n", $header);
+            $part = count($header);
+            $part -= 2;
+        }
+
+        foreach (explode("\r\n", $header[$part]) as $i => $line) {
+            if ($i === 0) {
+                $parsedHeaders['Http-Code-Line'] = $line;
+            } else {
+                list ($key, $value) = explode(': ', $line);
+                $parsedHeaders[$key] = $value;
+            }
+        }
+        return $parsedHeaders;
+    }
+
+    /**
+     * Sends requests using BUZZ Library.
+     *
+     * @param array $params
+     * @return Response
+     */
+    protected function sendRequest($params = array())
+    {
+        $urlBase = $params['urlBase'];
+        $httpMethod = $params['httpMethod'];
+        $headers = $params['headers'];
+        $content = $params['content'];
+
+        $request = new Request();
+        $response = new Response();
+
+        $request->setMethod($httpMethod);
+        $request->fromUrl($urlBase);
+        $request->setHeaders($headers);
+        $request->setContent($content);
+
+        $client = new FileGetContents();
+        $client->send($request, $response);
+
+        return $response;
     }
 
     public function download()

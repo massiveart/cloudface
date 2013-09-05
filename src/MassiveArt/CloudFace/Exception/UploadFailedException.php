@@ -11,6 +11,6 @@
 namespace MassiveArt\CloudFace\Exception;
 
 
-class InvalidRequestException extends  \Exception{
+class UploadFailedException extends  \Exception{
 
 }

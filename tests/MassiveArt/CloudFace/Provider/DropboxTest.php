@@ -2,7 +2,7 @@
 /*
  * This file is part of the MassiveArt CloudFace Library.
  *
- * (c) MASSIVE ART Webservices GmbH
+ * (c) MASSIVE ART WebServices GmbH
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -13,18 +13,20 @@ use MassiveArt\CloudFace\Provider\Dropbox;
 
 /**
  * Test class for Dropbox.
+ *
  * @package MassiveArt\CloudFace\Provider
  */
 class DropboxTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Contains an instance of Dropbox class.
+     *
      * @var Dropbox
      */
     private $dropbox;
 
     /**
-     * Initialize a dropbox object.
+     * Instantiates a dropbox object.
      */
     public function setUp()
     {
@@ -32,25 +34,26 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Tests the function authorize.
+     * Tests the authorize function.
      */
     public function testAuthorize()
     {
         $accessToken = '3MxMAbx5aoYAAAAAAAAAAVqN4vGd7XasOmTOEDfj4uwfWPB-Jo3Rp19XsRR5UprT';
-
         $params = array('accessToken' => $accessToken);
 
        $this->assertEquals(true, $this->dropbox->authorize($params));
     }
 
-
+    /**
+     * Tests the upload function
+     */
     public function testUpload()
     {
-        $file = '/Users/Naser/Desktop';
-        $path = '/CrazyFolder/test.txt';
+        $path = 'CrazyFolder/';
+        $file = '/Users/Naser/Desktop/haha.pdf';
+        $params = array('overwrite' => 'false');
 
-        $params = array('file' => $file, 'path' => $path);
-
-        $this->assertEquals("haha", $this->dropbox->upload($params));
+        $this->testAuthorize();
+        $this->assertEquals(true, $this->dropbox->upload($file, $path, $params));
     }
 }
