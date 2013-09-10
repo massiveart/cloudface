@@ -2,7 +2,7 @@
 /*
  * This file is part of the MassiveArt CloudFace Library.
  *
- * (c) MASSIVE ART Webservices GmbH
+ * (c) MASSIVE ART WebServices GmbH
  *
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
@@ -19,10 +19,21 @@ namespace MassiveArt\CloudFace;
 interface CloudInterface {
 
     /**
+     * Provides information(e.g. access token) that is essentially to make valid requests and access the services.
+     *
      * @param array $params
      * @return mixed
      */
     public function authorize($params = array());
-    public function upload();
-    public function download();
+
+    /**
+     * Uploads a file to the given path. Optional parameters can be passed in an array.
+     *
+     * @param $file
+     * @param $path
+     * @param array $options
+     * @return mixed
+     */
+    public function upload($file, $path, $options = array());
+    public function download($file, $path);
 }
