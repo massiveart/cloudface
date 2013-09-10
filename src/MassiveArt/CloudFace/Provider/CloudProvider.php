@@ -37,5 +37,21 @@ abstract class CloudProvider implements CloudInterface{
      * @return mixed
      */
     public abstract function upload($file, $path, $options = array());
+    /**
+     * Downloads the file to the given path. Optional parameters can be passed in an array.
+     *
+     * @param $file
+     * @param $path
+     * @param array $options
+     * @return mixed
+     */
     public abstract function download($file, $path, $options = array());
+
+    /**
+     * Creates a new folder.
+     *
+     * @param $path
+     * @return mixed
+     */
+    public abstract function createFolder($path);
 }

@@ -74,9 +74,25 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
         $defaultPath = '/Users/Naser/Download/';
         // The path to the FILE on dropbox
         $file = 'Naser/haha.pdf';
-        $options = array('override' => false, 'defaultPath' => $defaultPath);
+        $options = array(
+            'override'    => false,
+            'defaultPath' => $defaultPath
+        );
 
         $this->dropbox->authorize($this->authorizationParams);
         $this->assertEquals(true, $this->dropbox->download($file, $path, $options));
     }
+
+    /**
+     * Tests the create folder function
+     */
+
+    public function testCreateFolder()
+    {
+        $path = 'Test';
+
+        $this->testAuthorize();
+        $this->assertEquals(true, $this->dropbox->createFolder($path));
+    }
+
 }

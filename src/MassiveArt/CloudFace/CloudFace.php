@@ -72,8 +72,29 @@ class CloudFace implements CloudInterface
         $this->cloudProvider->upload($file, $path, $options = array());
     }
 
+    /**
+     * Downloads the file to the given path. Optional parameters can be passed in an array.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $file
+     * @param $path
+     * @param array $options
+     * @return mixed|void
+     */
     public function download($file, $path, $options = array())
     {
+        $this->cloudProvider->download($file, $path, $options = array());
+    }
 
+    /**
+     * Creates a new Folder in the given path.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $path
+     * @return mixed|void
+     */
+    public function createFolder($path)
+    {
+        $this->cloudProvider->createFolder($path);
     }
 }

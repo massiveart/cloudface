@@ -35,5 +35,23 @@ interface CloudInterface {
      * @return mixed
      */
     public function upload($file, $path, $options = array());
+
+    /**
+     * Downloads the file to the given path. Optional parameters can be passed in an array.
+     *
+     * @param $file
+     * @param $path
+     * @param array $options
+     * @return mixed
+     */
     public function download($file, $path, $options = array());
+
+    /**
+     * Creates a new folder.
+     *
+     * @param $path
+     * @return mixed
+     */
+    public function createFolder($path);
+
 }
