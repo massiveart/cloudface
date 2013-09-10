@@ -72,7 +72,7 @@ class CloudFace implements CloudInterface
         $this->cloudProvider->upload($file, $path, $options = array());
     }
 
-    public function download($file, $path)
+    public function download($file, $path, $options = array())
     {
 
     }

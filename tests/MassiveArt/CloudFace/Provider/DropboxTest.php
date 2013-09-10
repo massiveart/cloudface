@@ -37,7 +37,7 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
-        $accessToken = 'Your-Access-Token';
+        $accessToken = '3MxMAbx5aoYAAAAAAAAAAVqN4vGd7XasOmTOEDfj4uwfWPB-Jo3Rp19XsRR5UprT';
         $this->authorizationParams = array('accessToken' => $accessToken);
 
         $this->dropbox = new Dropbox();
@@ -62,5 +62,21 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
 
         $this->dropbox->authorize($this->authorizationParams);
         $this->assertEquals(true, $this->dropbox->upload($file, $path, $options));
+    }
+
+    /**
+     * Tests the download function
+     */
+    public function testDownload()
+    {
+        // The path to where the file will be downloaded to
+        $path = '/Users/Naser/Desktop/Test/';
+        $defaultPath = '/Users/Naser/Download/';
+        // The path to the FILE on dropbox
+        $file = 'Naser/haha.pdf';
+        $options = array('override' => false, 'defaultPath' => $defaultPath);
+
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->download($file, $path, $options));
     }
 }

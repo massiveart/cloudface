@@ -406,7 +406,7 @@ class AmazonS3 extends CloudProvider
         return $response;
     }
 
-    public function download($file, $path)
+    public function download($file, $path, $options = array())
     {
 
     }

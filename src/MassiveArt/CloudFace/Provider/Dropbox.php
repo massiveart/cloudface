@@ -13,6 +13,7 @@ namespace MassiveArt\CloudFace\Provider;
 use Buzz\Client\FileGetContents;
 use MassiveArt\CloudFace\Exception\FileNotFoundException;
 use MassiveArt\CloudFace\Exception\FolderNotFoundException;
+use MassiveArt\CloudFace\Exception\FileAlreadyExistsException;
 use MassiveArt\CloudFace\Exception\InvalidRequestException;
 use MassiveArt\CloudFace\Exception\MissingParameterException;
 use MassiveArt\CloudFace\Exception\UploadFailedException;
@@ -239,6 +240,62 @@ class Dropbox extends CloudProvider
     }
 
     /**
+     * Downloads the file to the given path. Optional parameters can be passed in an array.
+     *
+     * @param $file
+     * @param $path
+     * @param array $options
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\FolderNotFoundException
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     * @throws \MassiveArt\CloudFace\Exception\FileAlreadyExistsException
+     */
+    public function download($file, $path, $options = array())
+    {
+        // Set to the user's default path (e.g. /Users/Name/Downloads)
+        if ($path == '') {
+            $path = isset($options['defaultPath']) ? $options['defaultPath'] : null;
+        }
+
+        if (!file_exists($path)) {
+            throw new FolderNotFoundException($path);
+        }
+
+        if (!isset($options['override'])) {
+            $options['override'] = true;
+        }
+
+        list($file, $path) = $this->doTrim($file, $path);
+
+        $httpMethod = 'GET';
+        $urlBase = 'https://api-content.dropbox.com/1/files/dropbox/' . $file;
+
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array(
+            'httpMethod' => $httpMethod,
+            'urlBase'    => $urlBase,
+            'headers'    => $requestHeaders
+        );
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        $path = $path . basename($file);
+
+        if ((!file_exists($path)) || file_exists($path) && $options['override'] == true) {
+            file_put_contents($path, $response->getContent());
+
+            return true;
+        } else {
+            throw new FileAlreadyExistsException($path);
+        }
+    }
+
+    /**
      * Sends requests using BUZZ Library.
      *
      * @param array $params
@@ -266,8 +323,22 @@ class Dropbox extends CloudProvider
         return $response;
     }
 
-    public function download($file, $path)
+    /**
+     * Trims the given file and path name.
+     *
+     * @param $file
+     * @param $path
+     * @return array
+     */
+    private function doTrim($file, $path)
     {
+        $path = trim($path, '/');
+        $path = '/' . $path . '/';
+        $file = trim($file, '/');
 
+        return array(
+            $file,
+            $path
+        );
     }
 }
