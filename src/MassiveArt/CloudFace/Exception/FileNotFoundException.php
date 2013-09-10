@@ -11,6 +11,11 @@
 namespace MassiveArt\CloudFace\Exception;
 
 
-class FileNotFoundException extends  \Exception{
-
+class FileNotFoundException extends ResourceNotFoundException
+{
+    public function __construct($file)
+    {
+        $this->resource = $file;
+        parent::__construct($file);
+    }
 }

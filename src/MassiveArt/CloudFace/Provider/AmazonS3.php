@@ -39,6 +39,20 @@ class AmazonS3 extends CloudProvider
     protected $awsSecretKey;
 
     /**
+     * Minimum size of an uploading part in bytes 67108864 = 64MB
+     *
+     * @const integer
+     */
+    const PART_SIZE = 67108864;
+
+    /**
+     * The maximum size of a file in bytes that will be uploaded in a single request. 104857600 = 100 MB
+     *
+     * @const integer
+     */
+    const FILE_LIMIT_SIZE = 104857600;
+
+    /**
      * Provides information(e.g. access token) that is essentially to make valid requests and access the services.
      * If the required information is not set, it throws an missing parameter Exception.
      *
@@ -60,6 +74,7 @@ class AmazonS3 extends CloudProvider
         } else {
             $this->awsAccessKeyId = $params['awsAccessKeyId'];
             $this->awsSecretKey = $params['awsSecretKey'];
+
             return true;
         }
     }
@@ -83,12 +98,8 @@ class AmazonS3 extends CloudProvider
      */
     public function upload($file, $path, $params = array())
     {
-        if (!isset($file)) {
-            throw new MissingParameterException('The path to the file on disk is missing.');
-        }
-
-        if (!isset($path)) {
-            throw new MissingParameterException('The path to where the file will be uploaded is missing.');
+        if (!file_exists($file)) {
+            throw new FileNotFoundException($file);
         }
 
         if (!isset($params['region'])) {
@@ -101,9 +112,6 @@ class AmazonS3 extends CloudProvider
 
         // Defines the protocol which will be used.
         $scheme = 'https';
-
-        // The maximum size of a file in bytes that will be uploaded in a single request. 104857600 = 100 MB
-        $fileLimitSize = 104857600;
 
         // host name
         $host = 'amazonaws.com';
@@ -139,45 +147,59 @@ class AmazonS3 extends CloudProvider
         // x-amz-header for date
         $canonicalizedAmzHeaders = 'x-amz-date:' . $requestDate;
 
-        ini_set('memory_limit', '-1');
-
         // The XML root element which will contains the parts list using multi part upload
         $xmlCompleteMultipartUpload = new \SimpleXMLElement('<CompleteMultipartUpload></CompleteMultipartUpload>');
 
-        if (!file_exists($file)) {
-            throw new FileNotFoundException($file . ' could not be found.');
-        } elseif ($objectSize <= $fileLimitSize) {
-            $authorizationParams = array('httpMethod' => $httpMethod, 'mimeType' => $mimeType, 'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders, 'canonicalizedResource' => $canonicalizedResource);
-            $requestHeaders = array('Authorization:' . $this->getAuthorization($authorizationParams), 'x-amz-date:' . $requestDate, 'Content-Type:' . $mimeType, 'Content-Length:' . $objectSize);
+        if ($objectSize <= self::FILE_LIMIT_SIZE) {
+            $authorizationParams = array(
+                'httpMethod'              => $httpMethod,
+                'mimeType'                => $mimeType,
+                'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
+                'canonicalizedResource'   => $canonicalizedResource
+            );
+            $requestHeaders = array(
+                'Authorization:' . $this->getAuthorization($authorizationParams),
+                'x-amz-date:' . $requestDate,
+                'Content-Type:' . $mimeType,
+                'Content-Length:' . $objectSize
+            );
             $requestContent = file_get_contents($file);
-            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders, 'content' => $requestContent);
+            $params = array(
+                'httpMethod' => $httpMethod,
+                'urlBase'    => $urlBase,
+                'headers'    => $requestHeaders,
+                'content'    => $requestContent
+            );
 
             $response = $this->sendRequest($params);
 
             if (!$response->isOk()) {
-                throw new UploadFailedException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+                throw new UploadFailedException($response->getStatusCode(), $response->getReasonPhrase(
+                ), $response->getContent());
             } else {
                 return true;
             }
-        } elseif ($objectSize > $fileLimitSize) {
+        } else {
             // number of current part starting with 1.
             $partNumber = 1;
 
             // start point relative to the file's begin.
             $offset = 0;
 
-            // The minimum size of an uploading part in bytes 67108864 = 64MB
-            $partSize = 67108864;
-
             // The unique upload id which identifies the uploaded parts.
-            $uploadId = $this->getMultiPartUploadId($urlBase, $canonicalizedResource, $canonicalizedAmzHeaders, $requestDate);
+            $uploadId = $this->getMultiPartUploadId(
+                $urlBase, $canonicalizedResource, $canonicalizedAmzHeaders, $requestDate
+            );
 
             // upload each part of object until all parts are uploaded. Also create XML Content for Complete Multi-Part Upload request.
-            while ($objectPart = file_get_contents($file, null, null, $offset, $partSize)) {
-                $eTag = $this->uploadPart($partNumber, $uploadId, $objectPart, $urlBase, $canonicalizedResource, $canonicalizedAmzHeaders, $requestDate, $mimeType);
+            while ($objectPart = file_get_contents($file, null, null, $offset, self::PART_SIZE)) {
+                $eTag = $this->uploadPart(
+                    $partNumber, $uploadId, $objectPart, $urlBase, $canonicalizedResource, $canonicalizedAmzHeaders,
+                    $requestDate, $mimeType
+                );
                 $this->createPartsList($partNumber, $eTag, $xmlCompleteMultipartUpload);
                 $partNumber++;
-                $offset += $partSize;
+                $offset += self::PART_SIZE;
             }
 
             // All parts (including Part Number and ETag) should be provide for complete multi part request.
@@ -192,15 +214,31 @@ class AmazonS3 extends CloudProvider
             $canonicalizedResource .= '?uploadId=' . $uploadId;
             $contentLength = strlen($partsList);
 
-            $authorizationParams = array('httpMethod' => $httpMethod, 'mimeType' => $mimeType, 'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders, 'canonicalizedResource' => $canonicalizedResource);
-            $requestHeaders = array('Authorization:' . $this->getAuthorization($authorizationParams), 'x-amz-date:' . $requestDate, 'Content-Type:' . $mimeType, 'Content-Length:' . $contentLength);
+            $authorizationParams = array(
+                'httpMethod'              => $httpMethod,
+                'mimeType'                => $mimeType,
+                'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
+                'canonicalizedResource'   => $canonicalizedResource
+            );
+            $requestHeaders = array(
+                'Authorization:' . $this->getAuthorization($authorizationParams),
+                'x-amz-date:' . $requestDate,
+                'Content-Type:' . $mimeType,
+                'Content-Length:' . $contentLength
+            );
             $requestContent = $partsList;
-            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders, 'content' => $requestContent);
+            $params = array(
+                'httpMethod' => $httpMethod,
+                'urlBase'    => $urlBase,
+                'headers'    => $requestHeaders,
+                'content'    => $requestContent
+            );
 
             $response = $this->sendRequest($params);
 
             if (!$response->isOk()) {
-                throw new UploadFailedException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+                throw new UploadFailedException($response->getStatusCode(), $response->getReasonPhrase(
+                ), $response->getContent());
             } else {
                 return true;
             }
@@ -237,16 +275,29 @@ class AmazonS3 extends CloudProvider
         $urlBase .= '?uploads';
         $canonicalizedResource .= '?uploads';
 
-        $authorizationParams = array('httpMethod' => $httpMethod, 'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders, 'canonicalizedResource' => $canonicalizedResource);
-        $requestHeaders = array('Authorization: ' . $this->getAuthorization($authorizationParams), 'x-amz-date:' . $requestDate);
-        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+        $authorizationParams = array(
+            'httpMethod'              => $httpMethod,
+            'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
+            'canonicalizedResource'   => $canonicalizedResource
+        );
+        $requestHeaders = array(
+            'Authorization: ' . $this->getAuthorization($authorizationParams),
+            'x-amz-date:' . $requestDate
+        );
+        $params = array(
+            'httpMethod' => $httpMethod,
+            'urlBase'    => $urlBase,
+            'headers'    => $requestHeaders
+        );
 
         $response = $this->sendRequest($params);
         if (!$response->isOk()) {
-            throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
         } else {
             $responseContent = new \SimpleXMLElement($response->getContent());
             $responseContent = (array)$responseContent;
+
             return $responseContent['UploadId'];
         }
     }
@@ -265,21 +316,38 @@ class AmazonS3 extends CloudProvider
      * @return array|null|string
      * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
      */
-    protected function uploadPart($partNumber, $uploadId, $objectPart, $urlBase, $canonicalizedResource, $canonicalizedAmzHeaders, $requestDate, $mimeType)
+    protected function uploadPart($partNumber, $uploadId, $objectPart, $urlBase, $canonicalizedResource,
+                                  $canonicalizedAmzHeaders, $requestDate, $mimeType)
     {
         $httpMethod = 'PUT';
         $objectPartSize = strlen($objectPart);
         $urlBase .= '?partNumber=' . $partNumber . '&uploadId=' . $uploadId;
         $canonicalizedResource .= '?partNumber=' . $partNumber . '&uploadId=' . $uploadId;
 
-        $authorizationParams = array('httpMethod' => $httpMethod, 'mimeType' => $mimeType, 'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders, 'canonicalizedResource' => $canonicalizedResource);
-        $requestHeaders = array('Authorization: ' . $this->getAuthorization($authorizationParams), 'x-amz-date:' . $requestDate, 'Content-Length:' . $objectPartSize, 'Content-Type:' . $mimeType);
+        $authorizationParams = array(
+            'httpMethod'              => $httpMethod,
+            'mimeType'                => $mimeType,
+            'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
+            'canonicalizedResource'   => $canonicalizedResource
+        );
+        $requestHeaders = array(
+            'Authorization: ' . $this->getAuthorization($authorizationParams),
+            'x-amz-date:' . $requestDate,
+            'Content-Length:' . $objectPartSize,
+            'Content-Type:' . $mimeType
+        );
         $requestContent = $objectPart;
-        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders, 'content' => $requestContent);
+        $params = array(
+            'httpMethod' => $httpMethod,
+            'urlBase'    => $urlBase,
+            'headers'    => $requestHeaders,
+            'content'    => $requestContent
+        );
 
         $response = $this->sendRequest($params);
         if (!$response->isOk()) {
-            throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
         } else {
             return $response->getHeader('ETag');
         }
@@ -304,9 +372,7 @@ class AmazonS3 extends CloudProvider
             . "\n" // substitutes CONTENT-MD5
             . $mimetype . "\n" // substitutes CONTENT-TYPE
             . "\n" // substitutes DATE
-            . $canonicalizedAmzHeaders
-            . "\n"
-            . $canonicalizedResource;
+            . $canonicalizedAmzHeaders . "\n" . $canonicalizedResource;
 
         $signature = base64_encode(hash_hmac('sha1', utf8_encode($stringToSign), $this->awsSecretKey, true));
 
@@ -324,7 +390,7 @@ class AmazonS3 extends CloudProvider
         $urlBase = $params['urlBase'];
         $httpMethod = $params['httpMethod'];
         $headers = $params['headers'];
-        $content = $params['content'];
+        $content = isset($params['content']) ? $params['content'] : null;
 
         $request = new Request();
         $response = new Response();
@@ -340,7 +406,7 @@ class AmazonS3 extends CloudProvider
         return $response;
     }
 
-    public function download()
+    public function download($file, $path)
     {
 
     }

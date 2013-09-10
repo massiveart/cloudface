@@ -33,9 +33,9 @@ abstract class CloudProvider implements CloudInterface{
      *
      * @param $file
      * @param $path
-     * @param array $params
+     * @param array $options
      * @return mixed
      */
-    public abstract function upload($file, $path, $params = array());
-    public abstract function download();
+    public abstract function upload($file, $path, $options = array());
+    public abstract function download($file, $path);
 }

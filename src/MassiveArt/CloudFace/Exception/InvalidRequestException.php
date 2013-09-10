@@ -11,6 +11,18 @@
 namespace MassiveArt\CloudFace\Exception;
 
 
-class InvalidRequestException extends  \Exception{
+class InvalidRequestException extends \Exception
+{
+    protected $code;
+    protected $reason;
+    protected $content;
+
+    public function __construct($code, $reason, $content) {
+        $this->code = $code;
+        $this->reason = $reason;
+        $this->content = $content;
+
+        parent::__construct('Status code: ' . $code . ', Reason: ' . $reason . ', Content: ' . $content);
+    }
 
 }

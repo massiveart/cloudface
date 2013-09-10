@@ -31,9 +31,9 @@ interface CloudInterface {
      *
      * @param $file
      * @param $path
-     * @param array $params
+     * @param array $options
      * @return mixed
      */
-    public function upload($file, $path, $params = array());
-    public function download();
+    public function upload($file, $path, $options = array());
+    public function download($file, $path);
 }

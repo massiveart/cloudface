@@ -12,6 +12,7 @@ namespace MassiveArt\CloudFace\Provider;
 
 use Buzz\Client\FileGetContents;
 use MassiveArt\CloudFace\Exception\FileNotFoundException;
+use MassiveArt\CloudFace\Exception\FolderNotFoundException;
 use MassiveArt\CloudFace\Exception\InvalidRequestException;
 use MassiveArt\CloudFace\Exception\MissingParameterException;
 use MassiveArt\CloudFace\Exception\UploadFailedException;
@@ -67,11 +68,11 @@ class GoogleDrive extends CloudProvider
     public function authorize($params = array())
     {
         if (!isset($params['clientId'])) {
-            throw new MissingParameterException('Google\'s client id is missing.');
+            throw new MissingParameterException('clientId');
         } elseif (!isset($params['clientSecret'])) {
-            throw new MissingParameterException('Google\'s client secret is missing.');
+            throw new MissingParameterException('clientSecret');
         } elseif (!isset($params['refreshToken'])) {
-            throw new MissingParameterException('Google\'s refresh token is missing.');
+            throw new MissingParameterException('refreshToken');
         } else {
             // http method
             $httpMethod = 'POST';
@@ -94,14 +95,24 @@ class GoogleDrive extends CloudProvider
             // type of file
             $mimeType = 'application/x-www-form-urlencoded';
 
-            $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Type: ' . $mimeType);
-            $requestContent = 'grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret . '&refresh_token=' . $refreshToken;
-            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders, 'content' => $requestContent);
+            $requestHeaders = array(
+                'Authorization: ' . $this->getAccessToken(),
+                'Content-Type: ' . $mimeType
+            );
+            $requestContent =
+                'grant_type=' . $grantType . '&client_id=' . $clientId . '&client_secret=' . $clientSecret . '&refresh_token=' . $refreshToken;
+            $params = array(
+                'httpMethod' => $httpMethod,
+                'urlBase'    => $urlBase,
+                'headers'    => $requestHeaders,
+                'content'    => $requestContent
+            );
 
             $response = $this->sendRequest($params);
 
             if (!$response->isOk()) {
-                throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+                throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+                ), $response->getContent());
             } else {
                 $content = json_decode($response->getContent(), true);
                 $this->accessToken = $content["access_token"];
@@ -115,30 +126,29 @@ class GoogleDrive extends CloudProvider
      * Uploads a file to the given path. Optional parameters can be passed in an array.
      * Uses curl to make the request for getting the resumable upload id. The Buzz library does not work for this request.
      *
+     *
      * @param $file
      * @param $path
-     * @param array $params
+     * @param array $options
      * @return bool|mixed
      * @throws \MassiveArt\CloudFace\Exception\UploadFailedException
-     * @throws \MassiveArt\CloudFace\Exception\MissingParameterException
+     * @throws \MassiveArt\CloudFace\Exception\FileNotFoundException
      */
-    public function upload($file, $path, $params = array())
+    public function upload($file, $path, $options = array())
     {
-        if (!isset($file)) {
-            throw new MissingParameterException('The path to the file on disk is missing.');
+        if (!file_exists($file)) {
+            throw new FileNotFoundException($file);
         }
-
-        if (!isset($path)) {
-            $path = '';
-        }
-
         // the endpoint for initiating a resumable upload
         $urlBase = 'https://www.googleapis.com/upload/drive/v2/files?uploadType=resumable';
 
         // The path on Google Drive where the file will be uploaded. If '' given, the file will be uploaded onto the root directory.
         $path = $this->getParentFolder($path);
         // Contains the unique id of folder in which the file will be uploaded. The kind parameter is always "drive#parentReference"
-        $path = array("id" => $path, "kind" => "drive#parentReference");
+        $path = array(
+            "id"   => $path,
+            "kind" => "drive#parentReference"
+        );
         $path = json_encode($path);
         $path = '[' . $path . ']';
 
@@ -149,14 +159,20 @@ class GoogleDrive extends CloudProvider
         $fileName = basename($file);
 
         // Metadata which is optionally and if any presences it will be sent in the body of the request that gets the upload id.
-        $metaData = array("title" => "$fileName", "parents" => json_decode($path));
+        $metaData = array(
+            "title"   => "$fileName",
+            "parents" => json_decode($path)
+        );
         $metaData = json_encode($metaData);
-
-        ini_set('memory_limit', -1);
 
         // Initiate curl handle to get the resumable upload id
         $ch = curl_init();
-        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Length: ' . strlen($metaData), 'X-Upload-Content-Type: ' . $mimeType, 'Content-Type: application/json');
+        $requestHeaders = array(
+            'Authorization: ' . $this->getAccessToken(),
+            'Content-Length: ' . strlen($metaData),
+            'X-Upload-Content-Type: ' . $mimeType,
+            'Content-Type: application/json'
+        );
 
         curl_setopt($ch, CURLOPT_URL, $urlBase);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -174,7 +190,11 @@ class GoogleDrive extends CloudProvider
         $sessionUri = $response['Location'];
 
         // Upload the file by sending a PUT request to the session URI obtained in the previous step.
-        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Length: ' . $fileSize, 'Content-Type: ' . $mimeType);
+        $requestHeaders = array(
+            'Authorization: ' . $this->getAccessToken(),
+            'Content-Length: ' . $fileSize,
+            'Content-Type: ' . $mimeType
+        );
         $requestContent = file_get_contents($file);
 
         $ch = curl_init();
@@ -193,7 +213,9 @@ class GoogleDrive extends CloudProvider
         $httpCode = $this->parseHttpCodeLine($response['Http-Code-Line']);
 
         if ($httpCode != 200 and $httpCode != 201) {
-            throw new UploadFailedException('Your upload request is terminated before receiving a valid response. Retry the upload process or try "resumeInterruptedUpload" function.');
+            $reason = 'Your upload request is terminated before receiving a valid response';
+            $content = 'Retry the upload process or try "resumeInterruptedUpload" function';
+            throw new UploadFailedException($httpCode, $reason, $content);
         } else {
             return true;
         }
@@ -204,7 +226,7 @@ class GoogleDrive extends CloudProvider
      *
      * @param $path
      * @return mixed
-     * @throws \MassiveArt\CloudFace\Exception\FileNotFoundException
+     * @throws FolderNotFoundException
      */
     protected function getParentFolder($path)
     {
@@ -217,11 +239,13 @@ class GoogleDrive extends CloudProvider
         }
 
         foreach ($explodedPath as $folder) {
-            $query = urlencode("title = '$folder' and '$parentsId' in parents and mimeType = 'application/vnd.google-apps.folder'");
+            $query = urlencode(
+                "title = '$folder' and '$parentsId' in parents and mimeType = 'application/vnd.google-apps.folder'"
+            );
             $response = $this->getFiles('?q=' . $query);
             $response = json_decode($response->getContent(), true);
             if (count($response['items']) === 0) {
-                throw new FileNotFoundException('The path you want to upload to is not exists.');
+                throw new FolderNotFoundException($path);
             }
             $parentsId = $response['items'][0]['id'];
         }
@@ -238,6 +262,7 @@ class GoogleDrive extends CloudProvider
     protected function parseHttpCodeLine($httpCodeLine)
     {
         $explodedHttpCodeLine = explode(' ', $httpCodeLine);
+
         return $explodedHttpCodeLine[1];
     }
 
@@ -253,12 +278,19 @@ class GoogleDrive extends CloudProvider
         $urlBase = 'https://www.googleapis.com/drive/v2/about';
 
         $requestHeaders = array('Authorization: ' . $this->getAccessToken());
-        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+        $requestContent = null;
+        $params = array(
+            'httpMethod' => $httpMethod,
+            'urlBase'    => $urlBase,
+            'headers'    => $requestHeaders,
+            'content'    => $requestContent
+        );
 
         $response = $this->sendRequest($params);
 
         if (!$response->isOk()) {
-            throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
         } else {
             return $response;
         }
@@ -276,12 +308,17 @@ class GoogleDrive extends CloudProvider
         $httpMethod = 'GET';
         $urlBase = 'https://www.googleapis.com/drive/v2/files' . $query;
         $requestHeaders = array('Authorization: ' . $this->getAccessToken());
-        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+        $params = array(
+            'httpMethod' => $httpMethod,
+            'urlBase'    => $urlBase,
+            'headers'    => $requestHeaders
+        );
 
         $response = $this->sendRequest($params);
 
         if (!$response->isOk()) {
-            throw new InvalidRequestException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
         } else {
             return $response;
         }
@@ -299,7 +336,11 @@ class GoogleDrive extends CloudProvider
     {
         // Request the upload status
         $ch = curl_init();
-        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Length: 0', 'Content-Range: bytes */' . $params['fileSize']);
+        $requestHeaders = array(
+            'Authorization: ' . $this->getAccessToken(),
+            'Content-Length: 0',
+            'Content-Range: bytes */' . $params['fileSize']
+        );
 
         curl_setopt($ch, CURLOPT_URL, $params['sessionUri']);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
@@ -320,7 +361,11 @@ class GoogleDrive extends CloudProvider
         // Resume the upload from the point where it left off
         $ch = curl_init();
         $requestContent = file_get_contents($params['path'], null, null, $upperRange + 1);
-        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Length: ' . strlen($requestContent), 'Content-Range: bytes ' . ($upperRange + 1) . '-' . ($params['fileSize'] - 1) . '/' . $params['fileSize']);
+        $requestHeaders = array(
+            'Authorization: ' . $this->getAccessToken(),
+            'Content-Length: ' . strlen($requestContent),
+            'Content-Range: bytes ' . ($upperRange + 1) . '-' . ($params['fileSize'] - 1) . '/' . $params['fileSize']
+        );
 
         curl_setopt($ch, CURLOPT_URL, $params['sessionUri']);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
@@ -335,7 +380,9 @@ class GoogleDrive extends CloudProvider
         $httpCode = $this->parseHttpCodeLine($response['Http-Code-Line']);
 
         if ($httpCode != 200 and $httpCode != 201) {
-            throw new UploadFailedException('Your upload request is terminated before receiving a valid response. Retry the upload process or try "resumeInterruptedUpload" function.');
+            $reason = 'Your upload request is terminated before receiving a valid response';
+            $content = 'Retry the upload process or try "resumeInterruptedUpload" function';
+            throw new UploadFailedException($httpCode, $reason, $content);
         } else {
             return true;
         }
@@ -349,12 +396,14 @@ class GoogleDrive extends CloudProvider
      */
     protected function parseCurlResponseHeader($response)
     {
+
         $parsedHeaders = array();
 
         if (!$jsonPos = strpos($response, "{")) {
             $header = array($response);
             $part = 0;
         } else {
+            $jsonPos = strpos($response, "{");
             $header = substr($response, 0, $jsonPos);
             $header = explode("\r\n\r\n", $header);
             $part = count($header);
@@ -365,10 +414,14 @@ class GoogleDrive extends CloudProvider
             if ($i === 0) {
                 $parsedHeaders['Http-Code-Line'] = $line;
             } else {
-                list ($key, $value) = explode(': ', $line);
-                $parsedHeaders[$key] = $value;
+                if (!empty($line)) {
+                    list ($key, $value) = explode(': ', $line);
+                    $parsedHeaders[$key] = $value;
+                }
+
             }
         }
+
         return $parsedHeaders;
     }
 
@@ -383,7 +436,7 @@ class GoogleDrive extends CloudProvider
         $urlBase = $params['urlBase'];
         $httpMethod = $params['httpMethod'];
         $headers = $params['headers'];
-        $content = $params['content'];
+        $content = isset($params['content']) ? $params['content'] : null;
 
         $request = new Request();
         $response = new Response();
@@ -399,7 +452,7 @@ class GoogleDrive extends CloudProvider
         return $response;
     }
 
-    public function download()
+    public function download($file, $path)
     {
 
     }

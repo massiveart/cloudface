@@ -26,10 +26,20 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
     private $dropbox;
 
     /**
-     * Instantiates a dropbox object.
+     * Contains all required parameters for authorization.
+     *
+     * @var
+     */
+    private $authorizationParams;
+
+    /**
+     * Instantiates a dropbox object and sets the authorization parameters.
      */
     public function setUp()
     {
+        $accessToken = '3MxMAbx5aoYAAAAAAAAAAVqN4vGd7XasOmTOEDfj4uwfWPB-Jo3Rp19XsRR5UprT';
+        $this->authorizationParams = array('accessToken' => $accessToken);
+
         $this->dropbox = new Dropbox();
     }
 
@@ -38,10 +48,7 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
      */
     public function testAuthorize()
     {
-        $accessToken = 'Your-AccessToken';
-        $params = array('accessToken' => $accessToken);
-
-       $this->assertEquals(true, $this->dropbox->authorize($params));
+        $this->assertEquals(true, $this->dropbox->authorize($this->authorizationParams));
     }
 
     /**
@@ -50,10 +57,10 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
     public function testUpload()
     {
         $path = '';
-        $file = 'path to the file on disk';
-        $params = array('overwrite' => 'false');
+        $file = '/Users/Naser/Desktop/haha.pdf';
+        $options = array('overwrite' => 'false');
 
-        $this->testAuthorize();
-        $this->assertEquals(true, $this->dropbox->upload($file, $path, $params));
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->upload($file, $path, $options));
     }
 }

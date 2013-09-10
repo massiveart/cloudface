@@ -27,10 +27,27 @@ class GoogleDriveTest extends \PHPUnit_Framework_TestCase
     private $googleDrive;
 
     /**
-     * Instantiates a GoogleDrive object.
+     * Contains all required parameters for authorization.
+     *
+     * @var
+     */
+    private $authorizationParams;
+
+    /**
+     * Instantiates a GoogleDrive object and sets the authorization parameters.
      */
     public function setUp()
     {
+        $clientId = '565391687116.apps.googleusercontent.com';
+        $clientSecret = 'skWCWQsbcruC5jgYzNr5CfzR';
+        $refreshToken = '1/iFfu_MEHKxkwWVkmyK8IiXK1w0_pRTqE2WLerR8gJO4';
+
+        $this->authorizationParams = array(
+            'clientId'     => $clientId,
+            'clientSecret' => $clientSecret,
+            'refreshToken' => $refreshToken
+        );
+
         $this->googleDrive = new GoogleDrive();
     }
 
@@ -39,12 +56,7 @@ class GoogleDriveTest extends \PHPUnit_Framework_TestCase
      */
     public function testAuthorize()
     {
-        $clientId = 'Your-ClientId';
-        $clientSecret = 'Your-ClientSecret';
-        $refreshToken = 'Your-RefreshToken';
-        $params = array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'refreshToken' => $refreshToken);
-
-        $this->assertEquals(true, $this->googleDrive->authorize($params));
+        $this->assertEquals(true, $this->googleDrive->authorize($this->authorizationParams));
     }
 
     /**
@@ -53,10 +65,10 @@ class GoogleDriveTest extends \PHPUnit_Framework_TestCase
     public function testUpload()
     {
         $path = '';
-        $file = 'path to the file on disk';
-        $params = array();
+        $file = '/Users/Naser/Desktop/haha.pdf';
+        $options = array();
 
-        $this->testAuthorize();
-        $this->assertEquals(true, $this->googleDrive->upload($file, $path, $params));
+        $this->googleDrive->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->googleDrive->upload($file, $path, $options));
     }
 }

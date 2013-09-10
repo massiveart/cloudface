@@ -64,15 +64,15 @@ class CloudFace implements CloudInterface
      *
      * @param $file
      * @param $path
-     * @param array $params
+     * @param array $options
      * @return mixed|void
      */
-    public function upload($file, $path, $params = array())
+    public function upload($file, $path, $options = array())
     {
-        $this->cloudProvider->upload($file, $path, $params = array());
+        $this->cloudProvider->upload($file, $path, $options = array());
     }
 
-    public function download()
+    public function download($file, $path)
     {
 
     }

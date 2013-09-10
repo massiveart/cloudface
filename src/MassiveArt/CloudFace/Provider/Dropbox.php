@@ -12,6 +12,8 @@ namespace MassiveArt\CloudFace\Provider;
 
 use Buzz\Client\FileGetContents;
 use MassiveArt\CloudFace\Exception\FileNotFoundException;
+use MassiveArt\CloudFace\Exception\FolderNotFoundException;
+use MassiveArt\CloudFace\Exception\InvalidRequestException;
 use MassiveArt\CloudFace\Exception\MissingParameterException;
 use MassiveArt\CloudFace\Exception\UploadFailedException;
 use MassiveArt\CloudFace\Provider\CloudProvider;
@@ -32,6 +34,20 @@ class Dropbox extends CloudProvider
      * @var string
      */
     protected $accessToken;
+
+    /**
+     * Maximum size of a chunk in bytes 67108864 = 64MB
+     *
+     * @const integer
+     */
+    const CHUNK_SIZE = 67108864;
+
+    /**
+     * The maximum size of a file in bytes that can be uploaded in a single request, 157286400 = 150 MB
+     *
+     * @const integer
+     */
+    const  FILE_LIMIT_SIZE = 157286400;
 
     /**
      * Concatenates and returns the access token needed to make API requests.
@@ -61,9 +77,11 @@ class Dropbox extends CloudProvider
             throw new MissingParameterException('Dropbox\'s access token is missing.');
         } else {
             $this->accessToken = $params['accessToken'];
+
             return true;
         }
     }
+
 
     /**
      * Uploads a file to the given path. Optional parameters can be passed in an array.
@@ -80,36 +98,25 @@ class Dropbox extends CloudProvider
      *
      * Note that /files_put takes the file contents in the request body, but /commit_chunked_upload takes the upload_id.
      *
-     * @param array $file
+     * @param $file
      * @param $path
-     * @param array $params
-     * @return bool
+     * @param array $options
+     * @return bool|mixed
      * @throws \MassiveArt\CloudFace\Exception\UploadFailedException
-     * @throws \MassiveArt\CloudFace\Exception\MissingParameterException
      * @throws \MassiveArt\CloudFace\Exception\FileNotFoundException
      */
-    public function upload($file, $path, $params = array())
+    public function upload($file, $path, $options = array())
     {
-        if (!isset($file)) {
-            throw new MissingParameterException('The path to the file on disk is missing.');
+        if (!file_exists($file)) {
+            throw new FileNotFoundException($file);
         }
 
-        if (!isset($path)) {
-            $path = '';
-        }
-
-        if (!isset($params['overwrite'])) {
-            $params['overwrite'] = 'false';
+        if (!isset($options['overwrite'])) {
+            $options['overwrite'] = 'false';
         }
 
         $httpMethod = 'POST';
         $urlBase = 'https://api-content.dropbox.com/1/commit_chunked_upload/dropbox/';
-
-        // The size of a chunk in bytes 67108864 = 64MB
-        $chunkSize = 67108864;
-
-        // The maximum size of a file in bytes that can be uploaded in a single request. 157286400 = 150 MB
-        $fileLimitSize = 157286400;
 
         // The path on Dropbox where the file will be uploaded. If null or '' the file will be uploaded onto the root directory.
         $path = $path . basename($file);
@@ -121,24 +128,35 @@ class Dropbox extends CloudProvider
         $uploadId = null;
 
         // Contains both upload id and offset
-        $uploadIdAndOffset = array('uploadId' => $uploadId, 'offset' => $offset);
+        $uploadIdAndOffset = array(
+            'uploadId' => $uploadId,
+            'offset'   => $offset
+        );
 
-        if (!file_exists($file)) {
-            throw new FileNotFoundException($file . ' could not be found.');
-        } elseif (filesize($file) > $fileLimitSize) {
+        if (filesize($file) > self::FILE_LIMIT_SIZE) {
             $file = fopen($file, 'r');
-            while ($chunkOfFile = fread($file, $chunkSize)) {
-                $params = array('chunkOfFile' => $chunkOfFile, 'uploadId' => $uploadIdAndOffset['uploadId'], 'offset' => $uploadIdAndOffset['offset']);
+            while ($chunkOfFile = fread($file, self::CHUNK_SIZE)) {
+                $params = array(
+                    'chunkOfFile' => $chunkOfFile,
+                    'uploadId'    => $uploadIdAndOffset['uploadId'],
+                    'offset'      => $uploadIdAndOffset['offset']
+                );
                 $uploadIdAndOffset = $this->uploadChunk($params);
             }
 
             $requestHeaders = array('Authorization: ' . $this->getAccessToken());
-            $requestContent = 'upload_id=' . $uploadIdAndOffset['uploadId'] . '&overwrite=' . $params['overwrite'];
-            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase . $path, 'headers' => $requestHeaders, 'content' => $requestContent);
+            $requestContent = 'upload_id=' . $uploadIdAndOffset['uploadId'] . '&overwrite=' . $options['overwrite'];
+            $params = array(
+                'httpMethod' => $httpMethod,
+                'urlBase'    => $urlBase . $path,
+                'headers'    => $requestHeaders,
+                'content'    => $requestContent
+            );
             $response = $this->sendRequest($params);
 
             if (!$response->isOk()) {
-                throw new UploadFailedException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+                throw new UploadFailedException($response->getStatusCode(), $response->getReasonPhrase(
+                ), $response->getContent());
             } else {
                 return true;
             }
@@ -149,14 +167,23 @@ class Dropbox extends CloudProvider
             // If there is already a file at the specified path, the new file will be automatically renamed.
             $urlParams = '?overwrite=false';
 
-            $requestHeaders = array('Authorization:' . $this->getAccessToken(), 'Content-Type: application');
+            $requestHeaders = array(
+                'Authorization:' . $this->getAccessToken(),
+                'Content-Type: application'
+            );
             $requestContent = file_get_contents($file);
-            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase . $path . $urlParams, 'headers' => $requestHeaders, 'content' => $requestContent);
+            $params = array(
+                'httpMethod' => $httpMethod,
+                'urlBase'    => $urlBase . $path . $urlParams,
+                'headers'    => $requestHeaders,
+                'content'    => $requestContent
+            );
 
             $response = $this->sendRequest($params);
 
             if (!$response->isOk()) {
-                throw new UploadFailedException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+                throw new UploadFailedException($response->getStatusCode(), $response->getReasonPhrase(
+                ), $response->getContent());
             } else {
                 return true;
             }
@@ -182,19 +209,32 @@ class Dropbox extends CloudProvider
             $urlParams = '?upload_id=' . $params['uploadId'] . '&offset=' . $params['offset'];
         }
 
-        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Type: application');
+        $requestHeaders = array(
+            'Authorization: ' . $this->getAccessToken(),
+            'Content-Type: application'
+        );
         $requestContent = $params['chunkOfFile'];
-        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase . $urlParams, 'headers' => $requestHeaders, 'content' => $requestContent);
+        $params = array(
+            'httpMethod' => $httpMethod,
+            'urlBase'    => $urlBase . $urlParams,
+            'headers'    => $requestHeaders,
+            'content'    => $requestContent
+        );
 
         $response = $this->sendRequest($params);
 
         if (!$response->isOk()) {
-            throw new UploadFailedException($response->getStatusCode() . ' ' . $response->getReasonPhrase() . ' ' . $response->getContent());
+            throw new UploadFailedException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
         } else {
             $content = json_decode($response->getContent(), true);
             $uploadId = $content['upload_id'];
             $offset = $content['offset'];
-            return array('uploadId' => $uploadId, 'offset' => $offset);
+
+            return array(
+                'uploadId' => $uploadId,
+                'offset'   => $offset
+            );
         }
     }
 
@@ -209,7 +249,8 @@ class Dropbox extends CloudProvider
         $urlBase = $params['urlBase'];
         $httpMethod = $params['httpMethod'];
         $headers = $params['headers'];
-        $content = $params['content'];
+        $content = isset($params['content']) ? $params['content'] : null;
+
 
         $request = new Request();
         $response = new Response();
@@ -225,7 +266,7 @@ class Dropbox extends CloudProvider
         return $response;
     }
 
-    public function download()
+    public function download($file, $path)
     {
 
     }

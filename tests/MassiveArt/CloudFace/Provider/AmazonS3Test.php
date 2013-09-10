@@ -27,10 +27,25 @@ class AmazonS3Test extends \PHPUnit_Framework_TestCase
     private $amazonS3;
 
     /**
-     * Instantiates an AmazonS3 object.
+     * Contains all required parameters for authorization.
+     *
+     * @var
+     */
+    private $authorizationParams;
+
+    /**
+     * Instantiates an AmazonS3 object and sets the authorization parameters.
      */
     public function setUp()
+
     {
+        $awsAccessKeyId = 'AKIAJDD3MWRDKOLBBSAA';
+        $awsSecretKey = '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';
+        $this->authorizationParams = array(
+            'awsAccessKeyId' => $awsAccessKeyId,
+            'awsSecretKey'   => $awsSecretKey
+        );
+
         $this->amazonS3 = new AmazonS3();
     }
 
@@ -39,11 +54,7 @@ class AmazonS3Test extends \PHPUnit_Framework_TestCase
      */
     public function testAuthorize()
     {
-        $awsAccessKeyId = 'Your-AWS-AccessKeyId';
-        $awsSecretKey = 'Your-AWS-SecretKeyId';
-        $params = array('awsAccessKeyId' => $awsAccessKeyId, 'awsSecretKey' => $awsSecretKey);
-
-        $this->assertEquals(true,$this->amazonS3->authorize($params));
+        $this->assertEquals(true, $this->amazonS3->authorize($this->authorizationParams));
     }
 
     /**
@@ -52,11 +63,12 @@ class AmazonS3Test extends \PHPUnit_Framework_TestCase
     public function testUpload()
     {
         $region = 's3-eu-west-1';
-        $file = 'path to the file on disk';
-        $path = 'Your-Bucket-Name';
-        $params = array('region' => $region);
 
-        $this->testAuthorize();
-        $this->assertEquals(true, $this->amazonS3->upload($file, $path, $params));
+        $file = '/Users/Naser/Desktop/haha.pdf';
+        $path = 'my-super-bucket';
+        $options = array('region' => $region);
+
+        $this->amazonS3->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->amazonS3->upload($file, $path, $options));
     }
 }
