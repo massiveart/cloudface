@@ -296,7 +296,7 @@ class Dropbox extends CloudProvider
     }
 
     /**
-     * Creates a new folder in the given path
+     * Creates a new folder in the given path.
      * The path should also include the name of the new folder, separated by a '/'
      * If the path does not exists, it will be assumed that you are about creating a nested folder.
      * If a folder is already exists at the specified path, the new folder can not be created.
@@ -310,6 +310,37 @@ class Dropbox extends CloudProvider
         $root = 'dropbox';
         $httpMethod = 'POST';
         $urlBase = 'https://api.dropbox.com/1/fileops/create_folder';
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $requestContent = 'root=' . $root . '&path=' . $path;
+        $params = array(
+            'httpMethod' => $httpMethod,
+            'urlBase'    => $urlBase,
+            'headers'    => $requestHeaders,
+            'content'    => $requestContent
+        );
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return true;
+    }
+
+    /**
+     * Deletes a file or folder in the given path.
+     *
+     * @param $path
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function delete($path)
+    {
+        $root = 'dropbox';
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/fileops/delete';
         $requestHeaders = array('Authorization: ' . $this->getAccessToken());
         $requestContent = 'root=' . $root . '&path=' . $path;
         $params = array(

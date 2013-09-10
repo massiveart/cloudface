@@ -86,13 +86,22 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
     /**
      * Tests the create folder function
      */
-
     public function testCreateFolder()
     {
         $path = 'Test';
 
-        $this->testAuthorize();
+        $this->dropbox->authorize($this->authorizationParams);
         $this->assertEquals(true, $this->dropbox->createFolder($path));
     }
 
+    /**
+     * Tests the Delete function
+     */
+    public function testDelete()
+    {
+        $path = 'Test';
+
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->delete($path));
+    }
 }

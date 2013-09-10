@@ -18,7 +18,8 @@ use MassiveArt\CloudFace\CloudInterface;
  *
  * @package MassiveArt\CloudFace\Provider
  */
-abstract class CloudProvider implements CloudInterface{
+abstract class CloudProvider implements CloudInterface
+{
 
     /**
      * Provides information(e.g. access token) that is essentially to make valid requests and access the services.
@@ -37,6 +38,7 @@ abstract class CloudProvider implements CloudInterface{
      * @return mixed
      */
     public abstract function upload($file, $path, $options = array());
+
     /**
      * Downloads the file to the given path. Optional parameters can be passed in an array.
      *
@@ -54,4 +56,12 @@ abstract class CloudProvider implements CloudInterface{
      * @return mixed
      */
     public abstract function createFolder($path);
+
+    /**
+     * Deletes a file or folder in the given path.
+     *
+     * @param $path
+     * @return mixed
+     */
+    public abstract function delete($path);
 }

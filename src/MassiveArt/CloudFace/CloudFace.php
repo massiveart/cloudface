@@ -97,4 +97,15 @@ class CloudFace implements CloudInterface
     {
         $this->cloudProvider->createFolder($path);
     }
+
+    /**
+     * Deletes a file or folder in the given path
+     *
+     * @param $path
+     * @return mixed|void
+     */
+    public function delete($path)
+    {
+        $this->cloudProvider->delete($path);
+    }
 }

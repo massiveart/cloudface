@@ -16,7 +16,8 @@ namespace MassiveArt\CloudFace;
  *
  * @package MassiveArt\CloudFace
  */
-interface CloudInterface {
+interface CloudInterface
+{
 
     /**
      * Provides information(e.g. access token) that is essentially to make valid requests and access the services.
@@ -54,4 +55,11 @@ interface CloudInterface {
      */
     public function createFolder($path);
 
+    /**
+     * Deletes a file or folder in the given path.
+     *
+     * @param $path
+     * @return mixed
+     */
+    public function delete($path);
 }
