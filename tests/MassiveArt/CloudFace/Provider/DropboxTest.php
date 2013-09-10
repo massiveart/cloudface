@@ -37,7 +37,7 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
-        $accessToken = '3MxMAbx5aoYAAAAAAAAAAVqN4vGd7XasOmTOEDfj4uwfWPB-Jo3Rp19XsRR5UprT';
+        $accessToken = 'Your-Access-Token';
         $this->authorizationParams = array('accessToken' => $accessToken);
 
         $this->dropbox = new Dropbox();

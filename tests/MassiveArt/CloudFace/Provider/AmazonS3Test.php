@@ -39,8 +39,8 @@ class AmazonS3Test extends \PHPUnit_Framework_TestCase
     public function setUp()
 
     {
-        $awsAccessKeyId = 'AKIAJDD3MWRDKOLBBSAA';
-        $awsSecretKey = 'UpCJCs2+ouVHu0rtknldbTTru5HnWfA9SmX4wZyZ';
+        $awsAccessKeyId = 'Your-Access-Key-ID';
+        $awsSecretKey = 'Your-Secret-Key';
         $this->authorizationParams = array(
             'awsAccessKeyId' => $awsAccessKeyId,
             'awsSecretKey'   => $awsSecretKey

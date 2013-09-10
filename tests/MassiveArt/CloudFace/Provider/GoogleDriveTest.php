@@ -38,9 +38,9 @@ class GoogleDriveTest extends \PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
-        $clientId = '565391687116.apps.googleusercontent.com';
-        $clientSecret = 'skWCWQsbcruC5jgYzNr5CfzR';
-        $refreshToken = '1/iFfu_MEHKxkwWVkmyK8IiXK1w0_pRTqE2WLerR8gJO4';
+        $clientId = 'Your-Client-ID';
+        $clientSecret = 'Your-Client-Secret';
+        $refreshToken = 'Your-Refresh-Token';
 
         $this->authorizationParams = array(
             'clientId'     => $clientId,
