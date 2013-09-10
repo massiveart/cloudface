@@ -388,6 +388,31 @@ class GoogleDrive extends CloudProvider
         }
     }
 
+    public function download($file, $path, $options = array())
+    {
+
+    }
+
+    public function createFolder($path)
+    {
+
+    }
+
+    public function delete($path)
+    {
+
+    }
+
+    public function move($fromPath, $toPath)
+    {
+
+    }
+
+    public function copy($fromPath, $toPath)
+    {
+
+    }
+
     /**
      * Parses and returns an array of curl response headers.
      *
@@ -450,10 +475,5 @@ class GoogleDrive extends CloudProvider
         $client->send($request, $response);
 
         return $response;
-    }
-
-    public function download($file, $path, $options = array())
-    {
-
     }
 }

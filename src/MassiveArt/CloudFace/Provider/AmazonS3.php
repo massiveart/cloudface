@@ -353,6 +353,31 @@ class AmazonS3 extends CloudProvider
         }
     }
 
+    public function download($file, $path, $options = array())
+    {
+
+    }
+
+    public function createFolder($path)
+    {
+
+    }
+
+    public function delete($path)
+    {
+
+    }
+
+    public function move($fromPath, $toPath)
+    {
+
+    }
+
+    public function copy($fromPath, $toPath)
+    {
+
+    }
+
     /**
      * Concatenate stringToSign, calculates the signature and returns the authorization parameter that is needed by every API request.
      * Uses AWS secret key to calculate the HMAC-SHA1 of stringToSign.
@@ -406,8 +431,4 @@ class AmazonS3 extends CloudProvider
         return $response;
     }
 
-    public function download($file, $path, $options = array())
-    {
-
-    }
 }

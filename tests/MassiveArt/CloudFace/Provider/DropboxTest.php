@@ -116,4 +116,16 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
         $this->dropbox->authorize($this->authorizationParams);
         $this->assertEquals(true, $this->dropbox->move($fromPath, $toPath));
     }
+
+    /**
+     * Tests the Copy function.
+     */
+    public function testCopy()
+    {
+        $fromPath = 'Naser/haha.pdf';
+        $toPath = '/Test/test.pdf';
+
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->copy($fromPath, $toPath));
+    }
 }

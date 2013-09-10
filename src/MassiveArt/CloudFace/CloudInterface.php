@@ -71,4 +71,13 @@ interface CloudInterface
      * @return mixed
      */
     public function move($fromPath, $toPath);
+
+    /**
+     * Copies a file or a folder to a new location.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return mixed
+     */
+    public function copy($fromPath, $toPath);
 }

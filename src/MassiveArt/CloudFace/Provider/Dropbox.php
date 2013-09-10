@@ -395,6 +395,41 @@ class Dropbox extends CloudProvider
     }
 
     /**
+     * Copies a file or folder (including all files and folders in it) to a new location.
+     * Note that when copying a file, toPath must include the new name for the file.
+     * If toPath does not exists, first it will be created and then the file or folder will be copied in it.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function copy($fromPath, $toPath)
+    {
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/fileops/copy';
+        $root = 'dropbox';
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $requestContent = 'root=' . $root . '&from_path=' . $fromPath . '&to_path=' . $toPath;
+        $params = array(
+            'httpMethod' => $httpMethod,
+            'urlBase'    => $urlBase,
+            'headers'    => $requestHeaders,
+            'content'    => $requestContent
+        );
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return true;
+    }
+
+
+    /**
      * Sends requests using BUZZ Library.
      *
      * @param array $params

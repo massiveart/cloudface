@@ -122,4 +122,19 @@ class CloudFace implements CloudInterface
     {
         $this->cloudProvider->move($fromPath, $toPath);
     }
+
+    /**
+     * Copies a file or folder to a new location.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return mixed|void
+     */
+    public function copy($fromPath, $toPath)
+    {
+        $this->cloudProvider->copy($fromPath, $toPath);
+    }
+
+
 }
