@@ -99,7 +99,8 @@ class CloudFace implements CloudInterface
     }
 
     /**
-     * Deletes a file or folder in the given path
+     * Deletes a file or folder in the given path.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
      *
      * @param $path
      * @return mixed|void
@@ -107,5 +108,18 @@ class CloudFace implements CloudInterface
     public function delete($path)
     {
         $this->cloudProvider->delete($path);
+    }
+
+    /**
+     * Moves a file or folder to a new location.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return mixed|void
+     */
+    public function move($fromPath, $toPath)
+    {
+        $this->cloudProvider->move($fromPath, $toPath);
     }
 }

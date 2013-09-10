@@ -95,7 +95,7 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Tests the Delete function
+     * Tests the Delete function.
      */
     public function testDelete()
     {
@@ -103,5 +103,17 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
 
         $this->dropbox->authorize($this->authorizationParams);
         $this->assertEquals(true, $this->dropbox->delete($path));
+    }
+
+    /**
+     * Tests the Move function.
+     */
+    public function testMove()
+    {
+        $fromPath = 'Naser/haha.pdf';
+        $toPath = 'Test/jojo.pdf';
+
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->move($fromPath, $toPath));
     }
 }

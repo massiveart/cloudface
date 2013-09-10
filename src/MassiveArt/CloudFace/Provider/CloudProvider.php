@@ -64,4 +64,13 @@ abstract class CloudProvider implements CloudInterface
      * @return mixed
      */
     public abstract function delete($path);
+
+    /**
+     * Moves a file or folder to a new location.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return mixed
+     */
+    public abstract function move($fromPath, $toPath);
 }

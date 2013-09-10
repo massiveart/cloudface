@@ -62,4 +62,13 @@ interface CloudInterface
      * @return mixed
      */
     public function delete($path);
+
+    /**
+     * Moves a file or folder to a new location.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return mixed
+     */
+    public function move($fromPath, $toPath);
 }
