@@ -74,10 +74,7 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
         $defaultPath = '/Users/Naser/Download/';
         // The path to the FILE on dropbox
         $file = 'Naser/haha.pdf';
-        $options = array(
-            'override'    => false,
-            'defaultPath' => $defaultPath
-        );
+        $options = array('override' => false, 'defaultPath' => $defaultPath);
 
         $this->dropbox->authorize($this->authorizationParams);
         $this->assertEquals(true, $this->dropbox->download($file, $path, $options));
@@ -122,22 +119,68 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
      */
     public function testCopy()
     {
-        $fromPath = 'Naser/haha.pdf';
-        $toPath = '/Test/test.pdf';
+        $fromPath = 'BGHh_Glncm51NjRkaDJueg';
+        $toPath = '/Test/test.png';
 
         $this->dropbox->authorize($this->authorizationParams);
         $this->assertEquals(true, $this->dropbox->copy($fromPath, $toPath));
     }
 
     /**
-     * Tests the listing of data
+     * Tests the 'listData' function.
      */
     public function testListData()
-     {
-         $path = '';
+    {
+        $path = '';
 
-         $this->dropbox->authorize($this->authorizationParams);
-         $this->assertEquals(true, $this->dropbox->listData($path));
-     }
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->listData($path));
+    }
 
+    /**
+     * Tests 'getLink' function.
+     */
+    public function testGetLink()
+    {
+        $path = 'massiveart.png';
+
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->getLink($path));
+    }
+
+    /**
+     * Tests 'getMedia' function.
+     */
+    public function testGetMedia()
+    {
+        $path = 'massiveart.png';
+
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->getMedia($path));
+    }
+
+    /**
+     * Tests 'getCopyRef' function.
+     */
+    public function testGetCopyRef()
+    {
+        $path = 'massiveart.png';
+
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->getCopyReference($path));
+    }
+
+
+    /**
+     * Tests 'getThumbnail' function.
+     */
+    public function testGetThumbnail()
+    {
+        $path = 'SuluSystemProcesses.jpeg';
+        $format = 'jpeg';
+        $size = 's';
+
+        $this->dropbox->authorize($this->authorizationParams);
+        $this->assertEquals(true, $this->dropbox->getThumbnail($path, $format, $size));
+    }
 }

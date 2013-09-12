@@ -367,7 +367,7 @@ class Dropbox extends CloudProvider
         $urlBase = 'https://api.dropbox.com/1/fileops/copy';
         $root = 'dropbox';
         $requestHeaders = array('Authorization: ' . $this->getAccessToken());
-        $requestContent = 'root=' . $root . '&from_path=' . $fromPath . '&to_path=' . $toPath;
+        $requestContent = 'root=' . $root . '&from_path=' . $fromPath . '&to_path=' . $toPath; // &from_copy_ref
         $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
                         'content'    => $requestContent);
 
@@ -405,7 +405,144 @@ class Dropbox extends CloudProvider
             ), $response->getContent());
         }
         $metadata = json_decode($response->getContent(), true);
+
         return $this->getAbstractFormat($metadata);
+    }
+
+    /**
+     * Returns a dropbox link to files or folders in the given path.
+     * Users can use this link to view a preview of the file in a web browser.
+     *
+     * NOTE: The returned link for a folder (specified in the given path) allows users to see ALL files or folders
+     * within this folder. If you want to share only a single file make sure that you specifies the exact path to
+     * this single file in the given path.
+     *
+     * The returned links are set to expire far enough in the future so that expiration is effectively not an issue.
+     *
+     * @param $path
+     * @return mixed
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getLink($path)
+    {
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/shares/dropbox/' . $path;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return $this->getValueFromJsonKey($response->getContent(), 'url');
+    }
+
+    /**
+     * Returns the value of a given key in a json string
+     *
+     * @param $json
+     * @param $key
+     * @return mixed
+     */
+    private function getValueFromJsonKey($json, $key)
+    {
+        $decoded = json_decode($json, true);
+
+        return $decoded[$key];
+    }
+
+    /**
+     * Returns a link directly to a file
+     * Note: The path must specifies a file, not a folder. This link expires after four hours.
+     *
+     * @param $path
+     * @return mixed
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getMedia($path)
+    {
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/media/dropbox/' . $path;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return $this->getValueFromJsonKey($response->getContent(), 'url');
+    }
+
+    /**
+     * Returns a copy reference (copy_ref) to a file.
+     *
+     * This reference string can be used to copy that file to another user's Dropbox by passing it in as the
+     * from_copy_ref parameter on /fileops/copy.
+     *
+     * @param $path
+     * @return mixed
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getCopyReference($path)
+    {
+        $httpMethod = 'GET';
+        $urlBase = 'https://api.dropbox.com/1/copy_ref/dropbox/' . $path;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return $this->getValueFromJsonKey($response->getContent(), 'copy_ref');
+    }
+
+    /**
+     * Returns a thumbnail in a specified format and size for the image given in the path.
+     * Note that the returned value is the content of the thumbnail. This means it should be written in a new file before
+     * thumbnail can be viewed or used.
+     *
+     * The valid values for format are 'jpeg' (default) or 'png'.
+     * The valid values for size are as follows: ('xs', 's', 'm', 'l' and 'xl')
+     *  xs  32x32(px), s  64x64(px), m  128x128(px), l  640x480(px), xl  1024x768(px).
+     *
+     * The HTTP response contains the content metadata in JSON format within an x-dropbox-metadata header.
+     *
+     * NOTES:
+     * This method currently supports files with the following file extensions: 'jpg', 'jpeg', 'png', 'tiff', 'tif',
+     * 'gif' and 'bmp'. Photos larger than 20MB in size won't be converted to a thumbnail.
+     *
+     * @param $path
+     * @param $format
+     * @param $size
+     * @return mixed
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getThumbnail($path, $format, $size)
+    {
+        $httpMethod = 'GET';
+        $urlBase =
+            'https://api-content.dropbox.com/1/thumbnails/dropbox/' . $path . '?format=' . $format . '&size=' . $size;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return $response->getContent();
     }
 
     /**
