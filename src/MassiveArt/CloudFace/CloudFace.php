@@ -136,5 +136,17 @@ class CloudFace implements CloudInterface
         $this->cloudProvider->copy($fromPath, $toPath);
     }
 
+    /**
+     * Lists all existing files and folders in the given path.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $path
+     * @return mixed|void
+     */
+    public function listData($path)
+    {
+        $this->cloudProvider->listData($path);
+    }
+
 
 }

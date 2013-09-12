@@ -82,4 +82,12 @@ abstract class CloudProvider implements CloudInterface
      * @return mixed
      */
     public abstract function copy($fromPath, $toPath);
+
+    /**
+     * Lists all existing files and folders in the given path.
+     *
+     * @param $path
+     * @return mixed
+     */
+    public abstract function listData($path);
 }

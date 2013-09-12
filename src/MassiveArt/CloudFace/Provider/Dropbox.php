@@ -129,30 +129,20 @@ class Dropbox extends CloudProvider
         $uploadId = null;
 
         // Contains both upload id and offset
-        $uploadIdAndOffset = array(
-            'uploadId' => $uploadId,
-            'offset'   => $offset
-        );
+        $uploadIdAndOffset = array('uploadId' => $uploadId, 'offset' => $offset);
 
         if (filesize($file) > self::FILE_LIMIT_SIZE) {
             $file = fopen($file, 'r');
             while ($chunkOfFile = fread($file, self::CHUNK_SIZE)) {
-                $params = array(
-                    'chunkOfFile' => $chunkOfFile,
-                    'uploadId'    => $uploadIdAndOffset['uploadId'],
-                    'offset'      => $uploadIdAndOffset['offset']
-                );
+                $params = array('chunkOfFile' => $chunkOfFile, 'uploadId' => $uploadIdAndOffset['uploadId'],
+                                'offset'      => $uploadIdAndOffset['offset']);
                 $uploadIdAndOffset = $this->uploadChunk($params);
             }
 
             $requestHeaders = array('Authorization: ' . $this->getAccessToken());
             $requestContent = 'upload_id=' . $uploadIdAndOffset['uploadId'] . '&overwrite=' . $options['overwrite'];
-            $params = array(
-                'httpMethod' => $httpMethod,
-                'urlBase'    => $urlBase . $path,
-                'headers'    => $requestHeaders,
-                'content'    => $requestContent
-            );
+            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase . $path, 'headers' => $requestHeaders,
+                            'content'    => $requestContent);
             $response = $this->sendRequest($params);
 
             if (!$response->isOk()) {
@@ -168,17 +158,10 @@ class Dropbox extends CloudProvider
             // If there is already a file at the specified path, the new file will be automatically renamed.
             $urlParams = '?overwrite=false';
 
-            $requestHeaders = array(
-                'Authorization:' . $this->getAccessToken(),
-                'Content-Type: application'
-            );
+            $requestHeaders = array('Authorization:' . $this->getAccessToken(), 'Content-Type: application');
             $requestContent = file_get_contents($file);
-            $params = array(
-                'httpMethod' => $httpMethod,
-                'urlBase'    => $urlBase . $path . $urlParams,
-                'headers'    => $requestHeaders,
-                'content'    => $requestContent
-            );
+            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase . $path . $urlParams,
+                            'headers'    => $requestHeaders, 'content' => $requestContent);
 
             $response = $this->sendRequest($params);
 
@@ -210,17 +193,10 @@ class Dropbox extends CloudProvider
             $urlParams = '?upload_id=' . $params['uploadId'] . '&offset=' . $params['offset'];
         }
 
-        $requestHeaders = array(
-            'Authorization: ' . $this->getAccessToken(),
-            'Content-Type: application'
-        );
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Type: application');
         $requestContent = $params['chunkOfFile'];
-        $params = array(
-            'httpMethod' => $httpMethod,
-            'urlBase'    => $urlBase . $urlParams,
-            'headers'    => $requestHeaders,
-            'content'    => $requestContent
-        );
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase . $urlParams, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
 
         $response = $this->sendRequest($params);
 
@@ -232,10 +208,7 @@ class Dropbox extends CloudProvider
             $uploadId = $content['upload_id'];
             $offset = $content['offset'];
 
-            return array(
-                'uploadId' => $uploadId,
-                'offset'   => $offset
-            );
+            return array('uploadId' => $uploadId, 'offset' => $offset);
         }
     }
 
@@ -271,11 +244,7 @@ class Dropbox extends CloudProvider
         $urlBase = 'https://api-content.dropbox.com/1/files/dropbox/' . $file;
 
         $requestHeaders = array('Authorization: ' . $this->getAccessToken());
-        $params = array(
-            'httpMethod' => $httpMethod,
-            'urlBase'    => $urlBase,
-            'headers'    => $requestHeaders
-        );
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
 
         $response = $this->sendRequest($params);
 
@@ -312,12 +281,8 @@ class Dropbox extends CloudProvider
         $urlBase = 'https://api.dropbox.com/1/fileops/create_folder';
         $requestHeaders = array('Authorization: ' . $this->getAccessToken());
         $requestContent = 'root=' . $root . '&path=' . $path;
-        $params = array(
-            'httpMethod' => $httpMethod,
-            'urlBase'    => $urlBase,
-            'headers'    => $requestHeaders,
-            'content'    => $requestContent
-        );
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
 
         $response = $this->sendRequest($params);
 
@@ -343,12 +308,8 @@ class Dropbox extends CloudProvider
         $urlBase = 'https://api.dropbox.com/1/fileops/delete';
         $requestHeaders = array('Authorization: ' . $this->getAccessToken());
         $requestContent = 'root=' . $root . '&path=' . $path;
-        $params = array(
-            'httpMethod' => $httpMethod,
-            'urlBase'    => $urlBase,
-            'headers'    => $requestHeaders,
-            'content'    => $requestContent
-        );
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
 
         $response = $this->sendRequest($params);
 
@@ -377,12 +338,8 @@ class Dropbox extends CloudProvider
         $root = 'dropbox';
         $requestHeaders = array('Authorization: ' . $this->getAccessToken());
         $requestContent = 'root=' . $root . '&from_path=' . $fromPath . '&to_path=' . $toPath;
-        $params = array(
-            'httpMethod' => $httpMethod,
-            'urlBase'    => $urlBase,
-            'headers'    => $requestHeaders,
-            'content'    => $requestContent
-        );
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
 
         $response = $this->sendRequest($params);
 
@@ -411,12 +368,8 @@ class Dropbox extends CloudProvider
         $root = 'dropbox';
         $requestHeaders = array('Authorization: ' . $this->getAccessToken());
         $requestContent = 'root=' . $root . '&from_path=' . $fromPath . '&to_path=' . $toPath;
-        $params = array(
-            'httpMethod' => $httpMethod,
-            'urlBase'    => $urlBase,
-            'headers'    => $requestHeaders,
-            'content'    => $requestContent
-        );
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
 
         $response = $this->sendRequest($params);
 
@@ -428,6 +381,122 @@ class Dropbox extends CloudProvider
         return true;
     }
 
+    /**
+     * Retrieves files or folders metadata in the given path.
+     * Calls on folders will return a hash field which can be provide with 'hash' parameter so that if nothing has
+     * changed , the response will be a 304(Not Modified ).
+     *
+     * @param $path
+     * @return array
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function listData($path)
+    {
+        $httpMethod = 'GET';
+        $hash = '';
+        $urlBase = 'https://api.dropbox.com/1/metadata/dropbox/' . $path . '?hash=' . $hash;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+        $metadata = json_decode($response->getContent(), true);
+        return $this->getAbstractFormat($metadata);
+    }
+
+    /**
+     * Returns an abstract format of the given metadata.
+     *
+     * @See comments for 'doFormat' function for more information about the structure of the abstract format.
+     *
+     * Following parameter is omitted if the path in 'listData' function refers to a file.
+     *  items: List of metadata entries for the contents of the folder. It can be null if the entry is a file.
+     *
+     * @param $metadata
+     * @return array
+     */
+    private function getAbstractFormat($metadata)
+    {
+        list($path, $isDir, $bytes, $createdDate, $lastModified, $mimeType, $icon, $permission, $revision) =
+            $this->doFormat($metadata);
+
+        $items = isset($metadata['contents']) ? $metadata['contents'] : null;
+        $abstractFormat = array('path'         => $path, 'isDir' => $isDir, 'bytes' => $bytes,
+                                'createdDate'  => $createdDate, 'lastModified' => $lastModified,
+                                'mimeType'     => $mimeType, 'icon' => $icon, 'permission' => $permission,
+                                'revision'     => $revision, 'items' => $this->getMetadataOfItems($items));
+
+        return $abstractFormat;
+    }
+
+    /**
+     * Returns the abstract format for the given items for folders. This time without 'items' filed.
+     *
+     * @param $items
+     * @return array|null
+     */
+    private function getMetadataOfItems($items)
+    {
+        if ($items != null) {
+            $metadataOfItems = array();
+            foreach ($items as $item) {
+                list($path, $isDir, $bytes, $createdDate, $lastModified, $mimeType, $icon, $permission, $revision) =
+                    $this->doFormat($item);
+
+                $item = array('path'         => $path, 'isDir' => $isDir, 'bytes' => $bytes,
+                              'createdDate'  => $createdDate, 'lastModified' => $lastModified, 'mimeType' => $mimeType,
+                              'icon'         => $icon, 'permission' => $permission, 'revision' => $revision);
+                array_push($metadataOfItems, $item);
+            }
+
+            return $metadataOfItems;
+        } else {
+            return $items;
+        }
+    }
+
+    /**
+     * Returns the new format of the given item.
+     *
+     * Following parameters make the structure of the abstract format:
+     *  path: Returns the canonical path to the file or directory.
+     *  isDir: Indicates whether the entry is a folder or not.
+     *  bytes: The file size in bytes
+     *  createdDate: The creations date of the file or folder. It can be null.
+     *  lastModified: The last time the file was modified on Dropbox.
+     *  mimeType: Identifies the format of a file.
+     *  icon: The name or type of the icon can be used to illustrate the file type.
+     *  permission: Identifies the Read-Write rights for a file. It can be null.
+     *  revision:
+     *      hash: Can be used for indicating change's to the folder's contents.
+     *      rev: A unique identifier for the current revision of a file. It can be used to detect changes.
+     *
+     * @param $item
+     * @return array
+     */
+    private function doFormat($item)
+    {
+        $path = isset($item['path']) ? $item['path'] : null;
+        $isDir = isset($item['is_dir']) ? $item['is_dir'] : null;
+        $bytes = isset($item['bytes']) ? $item['bytes'] : null;
+        $createdDate = isset($item['created_date']) ? $item['created_date'] : null;
+        $lastModified = isset($item['modified']) ? $item['modified'] : null;
+        $mimeType = isset($item['mime_type']) ? $item['mime_type'] : null;
+        $icon = isset($item['icon']) ? $item['icon'] : null;
+        $permission = isset($item['permission']) ? $item['permission'] : null;
+
+        if ($isDir) {
+            $revision = isset($item['hash']) ? $item['hash'] : null;
+        } else {
+            $revision = isset($item['rev']) ? $item['rev'] : null;
+        }
+
+        return array($path, $isDir, $bytes, $createdDate, $lastModified, $mimeType, $icon, $permission, $revision);
+    }
 
     /**
      * Sends requests using BUZZ Library.
@@ -470,9 +539,6 @@ class Dropbox extends CloudProvider
         $path = '/' . $path . '/';
         $file = trim($file, '/');
 
-        return array(
-            $file,
-            $path
-        );
+        return array($file, $path);
     }
 }

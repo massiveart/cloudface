@@ -80,4 +80,12 @@ interface CloudInterface
      * @return mixed
      */
     public function copy($fromPath, $toPath);
+
+    /**
+     * Lists all existing files and folders in the given path.
+     *
+     * @param $path
+     * @return mixed
+     */
+    public function listData($path);
 }

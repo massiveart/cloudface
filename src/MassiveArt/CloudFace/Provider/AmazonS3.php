@@ -378,6 +378,11 @@ class AmazonS3 extends CloudProvider
 
     }
 
+    public function listData($path)
+    {
+
+    }
+
     /**
      * Concatenate stringToSign, calculates the signature and returns the authorization parameter that is needed by every API request.
      * Uses AWS secret key to calculate the HMAC-SHA1 of stringToSign.

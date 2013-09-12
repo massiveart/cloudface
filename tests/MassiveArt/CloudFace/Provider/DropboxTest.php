@@ -128,4 +128,16 @@ class DropboxTest extends \PHPUnit_Framework_TestCase
         $this->dropbox->authorize($this->authorizationParams);
         $this->assertEquals(true, $this->dropbox->copy($fromPath, $toPath));
     }
+
+    /**
+     * Tests the listing of data
+     */
+    public function testListData()
+     {
+         $path = '';
+
+         $this->dropbox->authorize($this->authorizationParams);
+         $this->assertEquals(true, $this->dropbox->listData($path));
+     }
+
 }
