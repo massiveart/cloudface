@@ -17,12 +17,12 @@ class InvalidRequestException extends \Exception
     protected $reason;
     protected $content;
 
-    public function __construct($code, $reason, $content) {
+    public function __construct($code, $reason, $content)
+    {
         $this->code = $code;
         $this->reason = $reason;
         $this->content = $content;
 
         parent::__construct('Status code: ' . $code . ', Reason: ' . $reason . ', Content: ' . $content);
     }
-
 }

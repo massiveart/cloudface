@@ -18,7 +18,8 @@ use MassiveArt\CloudFace\CloudInterface;
  *
  * @package MassiveArt\CloudFace\Provider
  */
-abstract class CloudProvider implements CloudInterface{
+abstract class CloudProvider implements CloudInterface
+{
 
     /**
      * Provides information(e.g. access token) that is essentially to make valid requests and access the services.
@@ -37,5 +38,56 @@ abstract class CloudProvider implements CloudInterface{
      * @return mixed
      */
     public abstract function upload($file, $path, $options = array());
-    public abstract function download($file, $path);
+
+    /**
+     * Downloads the file to the given path. Optional parameters can be passed in an array.
+     *
+     * @param $file
+     * @param $path
+     * @param array $options
+     * @return mixed
+     */
+    public abstract function download($file, $path, $options = array());
+
+    /**
+     * Creates a new folder.
+     *
+     * @param $path
+     * @return mixed
+     */
+    public abstract function createFolder($path);
+
+    /**
+     * Deletes a file or folder in the given path.
+     *
+     * @param $path
+     * @return mixed
+     */
+    public abstract function delete($path);
+
+    /**
+     * Moves a file or folder to a new location.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return mixed
+     */
+    public abstract function move($fromPath, $toPath);
+
+    /**
+     * Copies a file or a folder to a new location.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return mixed
+     */
+    public abstract function copy($fromPath, $toPath);
+
+    /**
+     * Lists all existing files and folders in the given path.
+     *
+     * @param $path
+     * @return mixed
+     */
+    public abstract function listData($path);
 }

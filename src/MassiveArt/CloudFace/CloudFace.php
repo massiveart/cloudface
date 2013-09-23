@@ -72,8 +72,81 @@ class CloudFace implements CloudInterface
         $this->cloudProvider->upload($file, $path, $options = array());
     }
 
-    public function download($file, $path)
+    /**
+     * Downloads the file to the given path. Optional parameters can be passed in an array.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $file
+     * @param $path
+     * @param array $options
+     * @return mixed|void
+     */
+    public function download($file, $path, $options = array())
     {
-
+        $this->cloudProvider->download($file, $path, $options = array());
     }
+
+    /**
+     * Creates a new Folder in the given path.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $path
+     * @return mixed|void
+     */
+    public function createFolder($path)
+    {
+        $this->cloudProvider->createFolder($path);
+    }
+
+    /**
+     * Deletes a file or folder in the given path.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $path
+     * @return mixed|void
+     */
+    public function delete($path)
+    {
+        $this->cloudProvider->delete($path);
+    }
+
+    /**
+     * Moves a file or folder to a new location.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return mixed|void
+     */
+    public function move($fromPath, $toPath)
+    {
+        $this->cloudProvider->move($fromPath, $toPath);
+    }
+
+    /**
+     * Copies a file or folder to a new location.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return mixed|void
+     */
+    public function copy($fromPath, $toPath)
+    {
+        $this->cloudProvider->copy($fromPath, $toPath);
+    }
+
+    /**
+     * Lists all existing files and folders in the given path.
+     * Delegates the function call to the function implemented in the appropriate cloud provider.
+     *
+     * @param $path
+     * @return mixed|void
+     */
+    public function listData($path)
+    {
+        $this->cloudProvider->listData($path);
+    }
+
+
 }

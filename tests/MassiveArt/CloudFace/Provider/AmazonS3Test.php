@@ -41,10 +41,7 @@ class AmazonS3Test extends \PHPUnit_Framework_TestCase
     {
         $awsAccessKeyId = 'Your-Access-Key-ID';
         $awsSecretKey = 'Your-Secret-Key';
-        $this->authorizationParams = array(
-            'awsAccessKeyId' => $awsAccessKeyId,
-            'awsSecretKey'   => $awsSecretKey
-        );
+        $this->authorizationParams = array('awsAccessKeyId' => $awsAccessKeyId, 'awsSecretKey' => $awsSecretKey);
 
         $this->amazonS3 = new AmazonS3();
     }
@@ -64,8 +61,8 @@ class AmazonS3Test extends \PHPUnit_Framework_TestCase
     {
         $region = 's3-eu-west-1';
 
-        $file = '/Users/Naser/Desktop/haha.pdf';
-        $path = 'my-super-bucket';
+        $file = '';
+        $path = '';
         $options = array('region' => $region);
 
         $this->amazonS3->authorize($this->authorizationParams);

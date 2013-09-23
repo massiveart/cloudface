@@ -11,13 +11,11 @@
 namespace MassiveArt\CloudFace\Exception;
 
 
-class ResourceNotFoundException extends \Exception
+class NotYetImplementedException extends \Exception
 {
-    protected $resource;
 
-    public function __construct($resource)
+    public function __construct()
     {
-        $this->resource = $resource;
-        parent::__construct($resource . '-resource could not be found.');
+        parent::__construct('This function is not implemented yet.');
     }
 }

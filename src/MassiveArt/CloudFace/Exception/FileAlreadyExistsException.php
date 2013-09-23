@@ -11,13 +11,12 @@
 namespace MassiveArt\CloudFace\Exception;
 
 
-class ResourceNotFoundException extends \Exception
+class FileAlreadyExistsException extends ResourceAlreadyExistsException
 {
-    protected $resource;
 
-    public function __construct($resource)
+    public function __construct($file)
     {
-        $this->resource = $resource;
-        parent::__construct($resource . '-resource could not be found.');
+        $this->resource = $file;
+        parent::__construct($file);
     }
 }
