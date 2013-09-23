@@ -11,13 +11,11 @@
 namespace MassiveArt\CloudFace\Exception;
 
 
-class MissingParameterException extends \Exception
+class FolderNotFoundException extends ResourceNotFoundException
 {
-    protected $parameter;
-
-    public function __construct($parameter)
+    public function __construct($folder)
     {
-        $this->parameter = $parameter;
-        parent:: __construct($parameter . '-parameter is missing.');
+        $this->resource = $folder;
+        parent::__construct($folder);
     }
 }
