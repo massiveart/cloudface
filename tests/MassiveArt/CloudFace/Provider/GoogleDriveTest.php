@@ -42,11 +42,8 @@ class GoogleDriveTest extends \PHPUnit_Framework_TestCase
         $clientSecret = 'Your-Client-Secret';
         $refreshToken = 'Your-Refresh-Token';
 
-        $this->authorizationParams = array(
-            'clientId'     => $clientId,
-            'clientSecret' => $clientSecret,
-            'refreshToken' => $refreshToken
-        );
+        $this->authorizationParams =
+            array('clientId' => $clientId, 'clientSecret' => $clientSecret, 'refreshToken' => $refreshToken);
 
         $this->googleDrive = new GoogleDrive();
     }
@@ -65,7 +62,7 @@ class GoogleDriveTest extends \PHPUnit_Framework_TestCase
     public function testUpload()
     {
         $path = '';
-        $file = '/Users/Naser/Desktop/haha.pdf';
+        $file = '';
         $options = array();
 
         $this->googleDrive->authorize($this->authorizationParams);

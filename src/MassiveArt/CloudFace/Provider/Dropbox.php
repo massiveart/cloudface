@@ -13,6 +13,7 @@ namespace MassiveArt\CloudFace\Provider;
 use Buzz\Client\FileGetContents;
 use MassiveArt\CloudFace\Exception\FileNotFoundException;
 use MassiveArt\CloudFace\Exception\FolderNotFoundException;
+use MassiveArt\CloudFace\Exception\FileAlreadyExistsException;
 use MassiveArt\CloudFace\Exception\InvalidRequestException;
 use MassiveArt\CloudFace\Exception\MissingParameterException;
 use MassiveArt\CloudFace\Exception\UploadFailedException;
@@ -74,14 +75,13 @@ class Dropbox extends CloudProvider
     public function authorize($params = array())
     {
         if (!isset($params['accessToken'])) {
-            throw new MissingParameterException('Dropbox\'s access token is missing.');
+            throw new MissingParameterException('Access token');
         } else {
             $this->accessToken = $params['accessToken'];
 
             return true;
         }
     }
-
 
     /**
      * Uploads a file to the given path. Optional parameters can be passed in an array.
@@ -128,30 +128,20 @@ class Dropbox extends CloudProvider
         $uploadId = null;
 
         // Contains both upload id and offset
-        $uploadIdAndOffset = array(
-            'uploadId' => $uploadId,
-            'offset'   => $offset
-        );
+        $uploadIdAndOffset = array('uploadId' => $uploadId, 'offset' => $offset);
 
         if (filesize($file) > self::FILE_LIMIT_SIZE) {
             $file = fopen($file, 'r');
             while ($chunkOfFile = fread($file, self::CHUNK_SIZE)) {
-                $params = array(
-                    'chunkOfFile' => $chunkOfFile,
-                    'uploadId'    => $uploadIdAndOffset['uploadId'],
-                    'offset'      => $uploadIdAndOffset['offset']
-                );
+                $params = array('chunkOfFile' => $chunkOfFile, 'uploadId' => $uploadIdAndOffset['uploadId'],
+                                'offset'      => $uploadIdAndOffset['offset']);
                 $uploadIdAndOffset = $this->uploadChunk($params);
             }
 
             $requestHeaders = array('Authorization: ' . $this->getAccessToken());
             $requestContent = 'upload_id=' . $uploadIdAndOffset['uploadId'] . '&overwrite=' . $options['overwrite'];
-            $params = array(
-                'httpMethod' => $httpMethod,
-                'urlBase'    => $urlBase . $path,
-                'headers'    => $requestHeaders,
-                'content'    => $requestContent
-            );
+            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase . $path, 'headers' => $requestHeaders,
+                            'content'    => $requestContent);
             $response = $this->sendRequest($params);
 
             if (!$response->isOk()) {
@@ -167,17 +157,10 @@ class Dropbox extends CloudProvider
             // If there is already a file at the specified path, the new file will be automatically renamed.
             $urlParams = '?overwrite=false';
 
-            $requestHeaders = array(
-                'Authorization:' . $this->getAccessToken(),
-                'Content-Type: application'
-            );
+            $requestHeaders = array('Authorization:' . $this->getAccessToken(), 'Content-Type: application');
             $requestContent = file_get_contents($file);
-            $params = array(
-                'httpMethod' => $httpMethod,
-                'urlBase'    => $urlBase . $path . $urlParams,
-                'headers'    => $requestHeaders,
-                'content'    => $requestContent
-            );
+            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase . $path . $urlParams,
+                            'headers'    => $requestHeaders, 'content' => $requestContent);
 
             $response = $this->sendRequest($params);
 
@@ -209,17 +192,10 @@ class Dropbox extends CloudProvider
             $urlParams = '?upload_id=' . $params['uploadId'] . '&offset=' . $params['offset'];
         }
 
-        $requestHeaders = array(
-            'Authorization: ' . $this->getAccessToken(),
-            'Content-Type: application'
-        );
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken(), 'Content-Type: application');
         $requestContent = $params['chunkOfFile'];
-        $params = array(
-            'httpMethod' => $httpMethod,
-            'urlBase'    => $urlBase . $urlParams,
-            'headers'    => $requestHeaders,
-            'content'    => $requestContent
-        );
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase . $urlParams, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
 
         $response = $this->sendRequest($params);
 
@@ -231,11 +207,481 @@ class Dropbox extends CloudProvider
             $uploadId = $content['upload_id'];
             $offset = $content['offset'];
 
-            return array(
-                'uploadId' => $uploadId,
-                'offset'   => $offset
-            );
+            return array('uploadId' => $uploadId, 'offset' => $offset);
         }
+    }
+
+    /**
+     * Downloads the file to the given path. Optional parameters can be passed in an array.
+     *
+     * @param $file
+     * @param $path
+     * @param array $options
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\FolderNotFoundException
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     * @throws \MassiveArt\CloudFace\Exception\FileAlreadyExistsException
+     */
+    public function download($file, $path, $options = array())
+    {
+        // Set to the user's default path (e.g. /Users/Name/Downloads)
+        if ($path == '') {
+            $path = isset($options['defaultPath']) ? $options['defaultPath'] : null;
+        }
+
+        if (!file_exists($path)) {
+            throw new FolderNotFoundException($path);
+        }
+
+        if (!isset($options['override'])) {
+            $options['override'] = true;
+        }
+
+        list($file, $path) = $this->doTrim($file, $path);
+
+        $httpMethod = 'GET';
+        $urlBase = 'https://api-content.dropbox.com/1/files/dropbox/' . $file;
+
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        $path = $path . basename($file);
+
+        if ((!file_exists($path)) || file_exists($path) && $options['override'] == true) {
+            file_put_contents($path, $response->getContent());
+
+            return true;
+        } else {
+            throw new FileAlreadyExistsException($path);
+        }
+    }
+
+    /**
+     * Creates a new folder in the given path.
+     * The path should also include the name of the new folder, separated by a '/'
+     * If the path does not exists, it will be assumed that you are about creating a nested folder.
+     * If a folder is already exists at the specified path, the new folder can not be created.
+     *
+     * @param $path
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function createFolder($path)
+    {
+        $root = 'dropbox';
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/fileops/create_folder';
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $requestContent = 'root=' . $root . '&path=' . $path;
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return true;
+    }
+
+    /**
+     * Deletes a file or folder in the given path.
+     *
+     * @param $path
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function delete($path)
+    {
+        $root = 'dropbox';
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/fileops/delete';
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $requestContent = 'root=' . $root . '&path=' . $path;
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return true;
+    }
+
+    /**
+     * Moves a file or folder(without any files) to a new location
+     * Note that toPath must include the new name for the file or folder
+     * If toPath does not exists, first it will be created and then the file or folder will be moved in it.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function move($fromPath, $toPath)
+    {
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/fileops/move';
+        $root = 'dropbox';
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $requestContent = 'root=' . $root . '&from_path=' . $fromPath . '&to_path=' . $toPath;
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return true;
+    }
+
+    /**
+     * Copies a file or folder (including all files and folders in it) to a new location.
+     * Note that when copying a file, toPath must include the new name for the file.
+     * If toPath does not exists, first it will be created and then the file or folder will be copied in it.
+     *
+     * @param $fromPath
+     * @param $toPath
+     * @return bool
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function copy($fromPath, $toPath)
+    {
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/fileops/copy';
+        $root = 'dropbox';
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $requestContent = 'root=' . $root . '&from_path=' . $fromPath . '&to_path=' . $toPath; // &from_copy_ref
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return true;
+    }
+
+    /**
+     * Retrieves files or folders metadata in the given path.
+     * Calls on folders will return a hash field which can be provide with 'hash' parameter so that if nothing has
+     * changed , the response will be a 304(Not Modified ).
+     *
+     * @param $path
+     * @return array
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function listData($path)
+    {
+        $httpMethod = 'GET';
+        $hash = '';
+        $urlBase = 'https://api.dropbox.com/1/metadata/dropbox/' . $path . '?hash=' . $hash;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        // $metadata = json_decode($response->getContent(), true);
+
+        return $this->getAbstractFormat($response->getContent());
+    }
+
+    /**
+     * Returns a dropbox link to files or folders in the given path.
+     * Users can use this link to view a preview of the file in a web browser.
+     *
+     * NOTE: The returned link for a folder (specified in the given path) allows users to see ALL files or folders
+     * within this folder. If you want to share only a single file make sure that you specifies the exact path to
+     * this single file in the given path.
+     *
+     * The returned links are set to expire far enough in the future so that expiration is effectively not an issue.
+     *
+     * @param $path
+     * @return mixed
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getLink($path)
+    {
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/shares/dropbox/' . $path;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return $this->getValueFromJsonKey($response->getContent(), 'url');
+    }
+
+    /**
+     * Returns the value of a given key in a json string
+     *
+     * @param $json
+     * @param $key
+     * @return mixed
+     */
+    private function getValueFromJsonKey($json, $key)
+    {
+        $decoded = json_decode($json, true);
+
+        return $decoded[$key];
+    }
+
+    /**
+     * Returns a link directly to a file
+     * Note: The path must specifies a file, not a folder. This link expires after four hours.
+     *
+     * @param $path
+     * @return mixed
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getMedia($path)
+    {
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/media/dropbox/' . $path;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return $this->getValueFromJsonKey($response->getContent(), 'url');
+    }
+
+    /**
+     * Returns a copy reference (copy_ref) to a file.
+     *
+     * This reference string can be used to copy that file to another user's Dropbox by passing it in as the
+     * from_copy_ref parameter on /fileops/copy.
+     *
+     * @param $path
+     * @return mixed
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getCopyReference($path)
+    {
+        $httpMethod = 'GET';
+        $urlBase = 'https://api.dropbox.com/1/copy_ref/dropbox/' . $path;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return $this->getValueFromJsonKey($response->getContent(), 'copy_ref');
+    }
+
+    /**
+     * Returns a thumbnail in a specified format and size for the image given in the path.
+     * Note that the returned value is the content of the thumbnail. This means it should be written in a new file before
+     * thumbnail can be viewed or used.
+     *
+     * The valid values for format are 'jpeg' (default) or 'png'.
+     * The valid values for size are as follows: ('xs', 's', 'm', 'l' and 'xl')
+     *  xs  32x32(px), s  64x64(px), m  128x128(px), l  640x480(px), xl  1024x768(px).
+     *
+     * The HTTP response contains the content metadata in JSON format within an x-dropbox-metadata header.
+     *
+     * NOTES:
+     * This method currently supports files with the following file extensions: 'jpg', 'jpeg', 'png', 'tiff', 'tif',
+     * 'gif' and 'bmp'. Photos larger than 20MB in size won't be converted to a thumbnail.
+     *
+     * @param $path
+     * @param $format
+     * @param $size
+     * @return mixed
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function getThumbnail($path, $format, $size)
+    {
+        $httpMethod = 'GET';
+        $urlBase =
+            'https://api-content.dropbox.com/1/thumbnails/dropbox/' . $path . '?format=' . $format . '&size=' . $size;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return $response->getContent();
+    }
+
+    /**
+     * Returns metadata for all files and folders whose filename contains the given query string as a substring.
+     *
+     * The path specifies the folder you want to search from. For searching in dropbox folder the path is '' or '/'.
+     *
+     * @param $path
+     * @param $query
+     * @return array|null
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function search($path, $query)
+    {
+        $httpMethod = 'GET';
+        $urlBase = 'https://api.dropbox.com/1/search/dropbox/' . $path . '?query=' . $query;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+        $result = json_decode($response->getContent(), true);
+
+        return $this->getMetadataOfItems($result);
+    }
+
+    public function getDelta($cursor)
+    {
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/delta';
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $requestContent = 'cursor=' . $cursor;
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return json_decode($response->getContent(), true);
+    }
+
+    /**
+     * Returns an abstract format of the given metadata.
+     *
+     * @See comments for 'doFormat' function for more information about the structure of the abstract format.
+     *
+     * Following parameter is omitted if the path in 'listData' function refers to a file.
+     *  items: List of metadata entries for the contents of the folder. It can be null if the entry is a file.
+     *
+     * @param $json
+     * @return array
+     */
+    private function getAbstractFormat($json)
+    {
+        $metadata = json_decode($json, true);
+        //print_r($metadata);exit;
+        list($path, $isDir, $bytes, $createdDate, $lastModified, $mimeType, $icon, $permission, $revision) =
+            $this->doFormat($metadata);
+
+        $items = isset($metadata['contents']) ? $metadata['contents'] : null;
+        $abstractFormat = array('path'         => $path, 'isDir' => $isDir, 'bytes' => $bytes,
+                                'createdDate'  => $createdDate, 'lastModified' => $lastModified,
+                                'mimeType'     => $mimeType, 'icon' => $icon, 'permission' => $permission,
+                                'revision'     => $revision, 'items' => $this->getMetadataOfItems($items));
+
+        return $abstractFormat;
+    }
+
+    /**
+     * Returns the abstract format for the given items for folders. This time without 'items' filed.
+     *
+     * @param $items
+     * @return array|null
+     */
+    private function getMetadataOfItems($items)
+    {
+        if ($items != null) {
+            $metadataOfItems = array();
+            foreach ($items as $item) {
+                list($path, $isDir, $bytes, $createdDate, $lastModified, $mimeType, $icon, $permission, $revision) =
+                    $this->doFormat($item);
+
+                $item = array('path'         => $path, 'isDir' => $isDir, 'bytes' => $bytes,
+                              'createdDate'  => $createdDate, 'lastModified' => $lastModified, 'mimeType' => $mimeType,
+                              'icon'         => $icon, 'permission' => $permission, 'revision' => $revision);
+                array_push($metadataOfItems, $item);
+            }
+
+            return $metadataOfItems;
+        } else {
+            return $items;
+        }
+    }
+
+    /**
+     * Returns the new format of the given item.
+     *
+     * Following parameters make the structure of the abstract format:
+     *  path: Returns the canonical path to the file or directory.
+     *  isDir: Indicates whether the entry is a folder or not.
+     *  bytes: The file size in bytes
+     *  createdDate: The creations date of the file or folder. It can be null.
+     *  lastModified: The last time the file was modified on Dropbox.
+     *  mimeType: Identifies the format of a file.
+     *  icon: The name or type of the icon can be used to illustrate the file type.
+     *  permission: Identifies the Read-Write rights for a file. It can be null.
+     *  revision:
+     *      hash: Can be used for indicating change's to the folder's contents.
+     *      rev: A unique identifier for the current revision of a file. It can be used to detect changes.
+     *
+     * @param $item
+     * @return array
+     */
+    private function doFormat($item)
+    {
+        $path = isset($item['path']) ? $item['path'] : null;
+        $isDir = isset($item['is_dir']) ? $item['is_dir'] : null;
+        $bytes = isset($item['bytes']) ? $item['bytes'] : null;
+        $createdDate = isset($item['created_date']) ? $item['created_date'] : null;
+        $lastModified = isset($item['modified']) ? $item['modified'] : null;
+        $mimeType = isset($item['mime_type']) ? $item['mime_type'] : null;
+        $icon = isset($item['icon']) ? $item['icon'] : null;
+        $permission = isset($item['permission']) ? $item['permission'] : null;
+
+        if ($isDir) {
+            $revision = isset($item['hash']) ? $item['hash'] : null;
+        } else {
+            $revision = isset($item['rev']) ? $item['rev'] : null;
+        }
+
+        return array($path, $isDir, $bytes, $createdDate, $lastModified, $mimeType, $icon, $permission, $revision);
     }
 
     /**
@@ -266,8 +712,19 @@ class Dropbox extends CloudProvider
         return $response;
     }
 
-    public function download($file, $path)
+    /**
+     * Trims the given file and path name.
+     *
+     * @param $file
+     * @param $path
+     * @return array
+     */
+    private function doTrim($file, $path)
     {
+        $path = trim($path, '/');
+        $path = '/' . $path . '/';
+        $file = trim($file, '/');
 
+        return array($file, $path);
     }
 }
