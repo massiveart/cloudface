@@ -75,14 +75,13 @@ class Dropbox extends CloudProvider
     public function authorize($params = array())
     {
         if (!isset($params['accessToken'])) {
-            throw new MissingParameterException('Dropbox\'s access token is missing.');
+            throw new MissingParameterException('Access token');
         } else {
             $this->accessToken = $params['accessToken'];
 
             return true;
         }
     }
-
 
     /**
      * Uploads a file to the given path. Optional parameters can be passed in an array.
@@ -404,9 +403,10 @@ class Dropbox extends CloudProvider
             throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
             ), $response->getContent());
         }
-        $metadata = json_decode($response->getContent(), true);
 
-        return $this->getAbstractFormat($metadata);
+        // $metadata = json_decode($response->getContent(), true);
+
+        return $this->getAbstractFormat($response->getContent());
     }
 
     /**
@@ -546,6 +546,53 @@ class Dropbox extends CloudProvider
     }
 
     /**
+     * Returns metadata for all files and folders whose filename contains the given query string as a substring.
+     *
+     * The path specifies the folder you want to search from. For searching in dropbox folder the path is '' or '/'.
+     *
+     * @param $path
+     * @param $query
+     * @return array|null
+     * @throws \MassiveArt\CloudFace\Exception\InvalidRequestException
+     */
+    public function search($path, $query)
+    {
+        $httpMethod = 'GET';
+        $urlBase = 'https://api.dropbox.com/1/search/dropbox/' . $path . '?query=' . $query;
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+        $result = json_decode($response->getContent(), true);
+
+        return $this->getMetadataOfItems($result);
+    }
+
+    public function getDelta($cursor)
+    {
+        $httpMethod = 'POST';
+        $urlBase = 'https://api.dropbox.com/1/delta';
+        $requestHeaders = array('Authorization: ' . $this->getAccessToken());
+        $requestContent = 'cursor=' . $cursor;
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
+
+        $response = $this->sendRequest($params);
+
+        if (!$response->isOk()) {
+            throw new InvalidRequestException($response->getStatusCode(), $response->getReasonPhrase(
+            ), $response->getContent());
+        }
+
+        return json_decode($response->getContent(), true);
+    }
+
+    /**
      * Returns an abstract format of the given metadata.
      *
      * @See comments for 'doFormat' function for more information about the structure of the abstract format.
@@ -553,11 +600,13 @@ class Dropbox extends CloudProvider
      * Following parameter is omitted if the path in 'listData' function refers to a file.
      *  items: List of metadata entries for the contents of the folder. It can be null if the entry is a file.
      *
-     * @param $metadata
+     * @param $json
      * @return array
      */
-    private function getAbstractFormat($metadata)
+    private function getAbstractFormat($json)
     {
+        $metadata = json_decode($json, true);
+        //print_r($metadata);exit;
         list($path, $isDir, $bytes, $createdDate, $lastModified, $mimeType, $icon, $permission, $revision) =
             $this->doFormat($metadata);
 

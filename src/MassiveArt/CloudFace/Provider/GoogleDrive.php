@@ -15,6 +15,7 @@ use MassiveArt\CloudFace\Exception\FileNotFoundException;
 use MassiveArt\CloudFace\Exception\FolderNotFoundException;
 use MassiveArt\CloudFace\Exception\InvalidRequestException;
 use MassiveArt\CloudFace\Exception\MissingParameterException;
+use MassiveArt\CloudFace\Exception\NotYetImplementedException;
 use MassiveArt\CloudFace\Exception\UploadFailedException;
 use MassiveArt\CloudFace\Provider\CloudProvider;
 use Buzz\Message\Request;
@@ -357,32 +358,32 @@ class GoogleDrive extends CloudProvider
 
     public function download($file, $path, $options = array())
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function createFolder($path)
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function delete($path)
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function move($fromPath, $toPath)
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function copy($fromPath, $toPath)
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function listData($path)
     {
-
+        throw new NotYetImplementedException;
     }
 
     /**

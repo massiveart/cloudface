@@ -17,6 +17,7 @@ use MassiveArt\CloudFace\Exception\FileNotFoundException;
 use MassiveArt\CloudFace\Exception\InvalidRequestException;
 use MassiveArt\CloudFace\Exception\MissingParameterException;
 use MassiveArt\CloudFace\Exception\UploadFailedException;
+use MassiveArt\CloudFace\Exception\NotYetImplementedException;
 
 /**
  * This is the class with which you can talk to the AmazonS3 REST API.
@@ -151,25 +152,15 @@ class AmazonS3 extends CloudProvider
         $xmlCompleteMultipartUpload = new \SimpleXMLElement('<CompleteMultipartUpload></CompleteMultipartUpload>');
 
         if ($objectSize <= self::FILE_LIMIT_SIZE) {
-            $authorizationParams = array(
-                'httpMethod'              => $httpMethod,
-                'mimeType'                => $mimeType,
-                'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
-                'canonicalizedResource'   => $canonicalizedResource
-            );
-            $requestHeaders = array(
-                'Authorization:' . $this->getAuthorization($authorizationParams),
-                'x-amz-date:' . $requestDate,
-                'Content-Type:' . $mimeType,
-                'Content-Length:' . $objectSize
-            );
+            $authorizationParams = array('httpMethod'              => $httpMethod, 'mimeType' => $mimeType,
+                                         'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
+                                         'canonicalizedResource'   => $canonicalizedResource);
+            $requestHeaders =
+                array('Authorization:' . $this->getAuthorization($authorizationParams), 'x-amz-date:' . $requestDate,
+                      'Content-Type:' . $mimeType, 'Content-Length:' . $objectSize);
             $requestContent = file_get_contents($file);
-            $params = array(
-                'httpMethod' => $httpMethod,
-                'urlBase'    => $urlBase,
-                'headers'    => $requestHeaders,
-                'content'    => $requestContent
-            );
+            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                            'content'    => $requestContent);
 
             $response = $this->sendRequest($params);
 
@@ -214,25 +205,15 @@ class AmazonS3 extends CloudProvider
             $canonicalizedResource .= '?uploadId=' . $uploadId;
             $contentLength = strlen($partsList);
 
-            $authorizationParams = array(
-                'httpMethod'              => $httpMethod,
-                'mimeType'                => $mimeType,
-                'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
-                'canonicalizedResource'   => $canonicalizedResource
-            );
-            $requestHeaders = array(
-                'Authorization:' . $this->getAuthorization($authorizationParams),
-                'x-amz-date:' . $requestDate,
-                'Content-Type:' . $mimeType,
-                'Content-Length:' . $contentLength
-            );
+            $authorizationParams = array('httpMethod'              => $httpMethod, 'mimeType' => $mimeType,
+                                         'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
+                                         'canonicalizedResource'   => $canonicalizedResource);
+            $requestHeaders =
+                array('Authorization:' . $this->getAuthorization($authorizationParams), 'x-amz-date:' . $requestDate,
+                      'Content-Type:' . $mimeType, 'Content-Length:' . $contentLength);
             $requestContent = $partsList;
-            $params = array(
-                'httpMethod' => $httpMethod,
-                'urlBase'    => $urlBase,
-                'headers'    => $requestHeaders,
-                'content'    => $requestContent
-            );
+            $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                            'content'    => $requestContent);
 
             $response = $this->sendRequest($params);
 
@@ -275,20 +256,12 @@ class AmazonS3 extends CloudProvider
         $urlBase .= '?uploads';
         $canonicalizedResource .= '?uploads';
 
-        $authorizationParams = array(
-            'httpMethod'              => $httpMethod,
-            'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
-            'canonicalizedResource'   => $canonicalizedResource
-        );
-        $requestHeaders = array(
-            'Authorization: ' . $this->getAuthorization($authorizationParams),
-            'x-amz-date:' . $requestDate
-        );
-        $params = array(
-            'httpMethod' => $httpMethod,
-            'urlBase'    => $urlBase,
-            'headers'    => $requestHeaders
-        );
+        $authorizationParams = array('httpMethod'              => $httpMethod,
+                                     'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
+                                     'canonicalizedResource'   => $canonicalizedResource);
+        $requestHeaders =
+            array('Authorization: ' . $this->getAuthorization($authorizationParams), 'x-amz-date:' . $requestDate);
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders);
 
         $response = $this->sendRequest($params);
         if (!$response->isOk()) {
@@ -324,25 +297,15 @@ class AmazonS3 extends CloudProvider
         $urlBase .= '?partNumber=' . $partNumber . '&uploadId=' . $uploadId;
         $canonicalizedResource .= '?partNumber=' . $partNumber . '&uploadId=' . $uploadId;
 
-        $authorizationParams = array(
-            'httpMethod'              => $httpMethod,
-            'mimeType'                => $mimeType,
-            'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
-            'canonicalizedResource'   => $canonicalizedResource
-        );
-        $requestHeaders = array(
-            'Authorization: ' . $this->getAuthorization($authorizationParams),
-            'x-amz-date:' . $requestDate,
-            'Content-Length:' . $objectPartSize,
-            'Content-Type:' . $mimeType
-        );
+        $authorizationParams = array('httpMethod'              => $httpMethod, 'mimeType' => $mimeType,
+                                     'canonicalizedAmzHeaders' => $canonicalizedAmzHeaders,
+                                     'canonicalizedResource'   => $canonicalizedResource);
+        $requestHeaders =
+            array('Authorization: ' . $this->getAuthorization($authorizationParams), 'x-amz-date:' . $requestDate,
+                  'Content-Length:' . $objectPartSize, 'Content-Type:' . $mimeType);
         $requestContent = $objectPart;
-        $params = array(
-            'httpMethod' => $httpMethod,
-            'urlBase'    => $urlBase,
-            'headers'    => $requestHeaders,
-            'content'    => $requestContent
-        );
+        $params = array('httpMethod' => $httpMethod, 'urlBase' => $urlBase, 'headers' => $requestHeaders,
+                        'content'    => $requestContent);
 
         $response = $this->sendRequest($params);
         if (!$response->isOk()) {
@@ -355,32 +318,32 @@ class AmazonS3 extends CloudProvider
 
     public function download($file, $path, $options = array())
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function createFolder($path)
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function delete($path)
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function move($fromPath, $toPath)
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function copy($fromPath, $toPath)
     {
-
+        throw new NotYetImplementedException;
     }
 
     public function listData($path)
     {
-
+        throw new NotYetImplementedException;
     }
 
     /**
